@@ -1,0 +1,14 @@
+Hola {{ usuario.nombre }},
+
+El estado de tu reserva #{{ reserva.id }} para {{ reserva.cabana.nombre }} ha sido actualizado.
+
+Detalles actualizados:
+• Fecha de entrada: {{ reserva.fecha_inicio }}
+• Fecha de salida: {{ reserva.fecha_fin }}
+• Total: ${{ total }}
+• Estado actual: {{ reserva.estado }}
+
+Para más detalles, ingresa a tu cuenta en nuestro sitio.
+
+Saludos,
+Cabañas Valle Central

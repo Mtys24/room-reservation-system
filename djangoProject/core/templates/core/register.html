@@ -1,0 +1,515 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrarse - Cabañas Valle Central</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <style>
+    .email-valid { border-color: #198754 !important; }
+    .email-invalid { border-color: #dc3545 !important; }
+    .phone-valid { border-color: #198754 !important; }
+    .phone-invalid { border-color: #dc3545 !important; }
+    .validation-feedback { font-size: 0.875rem; margin-top: 0.25rem; }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .toast-container { z-index: 9999; }
+    
+    /* Estilos mejorados para toasts */
+    .toast {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-bottom: 10px;
+      border: none;
+    }
+    
+    .toast-success {
+      background: linear-gradient(135deg, #198754, #2e7d32);
+    }
+    
+    .toast-error, .toast-danger {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+    
+    .toast-warning {
+      background: linear-gradient(135deg, #ffc107, #e0a800);
+    }
+    
+    .toast-info {
+      background: linear-gradient(135deg, #0dcaf0, #0aa2c0);
+    }
+    
+    .toast-body {
+      padding: 0.75rem 1rem;
+    }
+    
+    .btn-close-white {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR GENERAL MEJORADO -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+      <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150" height="150" class="me-2 rounded">
+      <span class="fw-bold text-light">Cabañas Valle Central</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- SECCIÓN IZQUIERDA: Navegación principal -->
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'index' %}">
+            <i class="bi bi-house me-1"></i>Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#cabanas">
+            <i class="bi bi-house-door me-1"></i>Cabañas
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contacto' %}">
+            <i class="bi bi-telephone me-1"></i>Contacto
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'politicas' %}">
+            <i class="bi bi-shield-check me-1"></i>Políticas
+          </a>
+        </li>
+      </ul>
+
+      <!-- SECCIÓN CENTRAL: Enlaces específicos del usuario -->
+      <ul class="navbar-nav align-items-center">
+        {% if request.session.usuario_id %}
+          {% if request.session.usuario_tipo == "admin" %}
+            <!-- ENLACES ESPECIALES PARA ADMIN -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle text-warning" href="#" role="button" data-bs-toggle="dropdown">
+                <i class="bi bi-gear me-1"></i>Administración
+              </a>
+              <ul class="dropdown-menu dropdown-menu-dark">
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-index' %}">
+                    <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                    <i class="bi bi-house-door me-2"></i>Gestionar Cabañas
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                    <i class="bi bi-calendar-check me-2"></i>Gestionar Reservas
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                    <i class="bi bi-people me-2"></i>Gestionar Usuarios
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                    <i class="bi bi-graph-up me-2"></i>Reportes
+                  </a>
+                </li>
+              </ul>
+            </li>
+          {% else %}
+            <!-- ENLACES PARA USUARIOS REGULARES -->
+            <li class="nav-item">
+              <a href="{% url 'mis_reservas' %}" class="nav-link text-light">
+                <i class="bi bi-calendar-check me-1"></i> Mis Reservas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'mi_perfil' %}" class="nav-link text-light">
+                <i class="bi bi-person me-1"></i> Mi Perfil
+              </a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
+
+      <!-- SECCIÓN DERECHA: Botones de sesión -->
+      <ul class="navbar-nav align-items-center ms-auto">
+        {% if request.session.usuario_id %}
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{% url 'login' %}" class="btn btn-green btn-sm me-2">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'register' %}" class="btn btn-green btn-sm">
+              <i class="bi bi-person-plus me-1"></i>Registrarse
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  <div class="login-card shadow">
+    <h2 class="mb-4 text-center text-success"><i class="bi bi-person-plus me-2"></i>Crear Cuenta</h2>
+    <form method="POST" id="registerForm">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label for="nombre" class="form-label"><i class="bi bi-person me-1"></i>Nombre completo</label>
+        <input type="text" class="form-control" id="nombre" name="nombre" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label"><i class="bi bi-envelope me-1"></i>Correo electrónico</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+        <div class="validation-feedback" id="emailFeedback"></div>
+      </div>
+      <div class="mb-3">
+        <label for="telefono" class="form-label"><i class="bi bi-telephone me-1"></i>Teléfono</label>
+        <input type="tel" class="form-control" id="telefono" name="telefono" 
+               placeholder="Ej: +56 9 1234 5678">
+        <div class="form-text">Formato: +56 9 1234 5678 (opcional)</div>
+        <div class="validation-feedback" id="phoneFeedback"></div>
+      </div>
+      <div class="mb-3">
+        <label for="contraseña" class="form-label"><i class="bi bi-lock me-1"></i>Contraseña</label>
+        <input type="password" class="form-control" id="contraseña" name="contraseña" required minlength="6">
+        <div class="form-text">Mínimo 6 caracteres</div>
+      </div>
+      <div class="mb-3">
+        <label for="confirmar" class="form-label"><i class="bi bi-lock-fill me-1"></i>Confirmar Contraseña</label>
+        <input type="password" class="form-control" id="confirmar" name="confirmar" required>
+        <div class="validation-feedback" id="passwordFeedback"></div>
+      </div>
+      <button type="submit" class="btn btn-green w-100" id="submitBtn"><i class="bi bi-person-plus me-2"></i>Registrarse</button>
+      <div class="mt-3 text-center">
+        <a href="{% url 'login' %}" class="text-success"><i class="bi bi-box-arrow-in-right me-1"></i>¿Ya tienes una cuenta? Inicia sesión</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sistema de notificaciones Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi 
+                {% if message.tags == 'success' %}bi-check-circle-fill
+                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
+                {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                {% else %}bi-info-circle-fill{% endif %} me-2"></i>
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- WhatsApp flotante -->
+  <a href="https://wa.link/cugqzv" target="_blank" class="whatsapp-float" title="Contáctanos por WhatsApp">
+    <i class="bi bi-whatsapp"></i>
+    <span class="wsp-popup">Para más información contáctanos por WhatsApp</span>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Mostrar toasts automáticamente al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inicializar todos los toasts existentes
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      var toastList = toastElList.map(function(toastEl) {
+        var toast = new bootstrap.Toast(toastEl);
+        toast.show();
+        return toast;
+      });
+      
+      // Configurar autodestrucción de toasts después de 5 segundos
+      setTimeout(function() {
+        toastList.forEach(function(toast) {
+          toast.hide();
+        });
+      }, 5000);
+    });
+
+    // Función para mostrar toasts dinámicos
+    function showDynamicToast(title, message, type) {
+      const toastContainer = document.querySelector('.toast-container');
+      const toastId = 'toast-' + Date.now();
+      
+      const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 
+                           type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                           type === 'warning' ? 'bi-exclamation-triangle-fill' : 
+                           'bi-info-circle-fill'} me-2"></i>
+              <strong>${title}</strong><br>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      
+      const toastElement = document.getElementById(toastId);
+      const toast = new bootstrap.Toast(toastElement);
+      toast.show();
+      
+      // Eliminar el toast del DOM después de ocultarse
+      toastElement.addEventListener('hidden.bs.toast', function () {
+        toastElement.remove();
+      });
+      
+      // Auto-ocultar después de 5 segundos
+      setTimeout(() => {
+        toast.hide();
+      }, 5000);
+    }
+
+    // Validación de email mejorada
+    function isValidEmail(email) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      return emailRegex.test(email);
+    }
+
+    function isValidEmailDomain(email) {
+      const domains = [
+        'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com',
+        'protonmail.com', 'live.com', 'msn.com', 'aol.com', 'yandex.com',
+        'mail.com', 'zoho.com', 'gmx.com', 'hubspot.com', 'salesforce.com',
+        'microsoft.com', 'apple.com', 'spotify.com', 'netflix.com', 'meta.com',
+        'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
+        'github.com', 'gitlab.com', 'bitbucket.com', 'stackoverflow.com',
+        'medium.com', 'reddit.com', 'discord.com', 'slack.com', 'trello.com',
+        'atlassian.com', 'google.com', 'amazon.com', 'microsoft.com',
+        'oracle.com', 'ibm.com', 'intel.com', 'amd.com', 'nvidia.com',
+        'dell.com', 'hp.com', 'lenovo.com', 'asus.com', 'acer.com',
+        'msi.com', 'samsung.com', 'lg.com', 'sony.com', 'panasonic.com',
+        'philips.com', 'bosch.com', 'siemens.com', 'ge.com', 'whirlpool.com',
+        'usm.cl','inacapmail.cl'
+      ];
+      
+      const domain = email.split('@')[1];
+      return domains.includes(domain?.toLowerCase());
+    }
+
+    // Validación de teléfono chileno
+    function isValidPhone(phone) {
+      if (!phone) return true; // Opcional
+      
+      const phoneRegex = /^(\+56\s?9\s?[0-9]{4}\s?[0-9]{4}|\+56\s?[0-9]{1,2}\s?[0-9]{4}\s?[0-9]{4})$/;
+      return phoneRegex.test(phone.replace(/\s/g, ''));
+    }
+
+    function formatPhone(phone) {
+      let cleaned = phone.replace(/[^\d+]/g, '');
+      
+      if (cleaned.startsWith('569') && cleaned.length >= 12) {
+        return `+56 9 ${cleaned.substring(3, 7)} ${cleaned.substring(7, 11)}`;
+      }
+      else if (cleaned.startsWith('+569') && cleaned.length >= 12) {
+        return `+56 9 ${cleaned.substring(4, 8)} ${cleaned.substring(8, 12)}`;
+      }
+      else if (cleaned.startsWith('56') && cleaned.length >= 11) {
+        return `+56 ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)} ${cleaned.substring(8, 12)}`;
+      }
+      else if (cleaned.startsWith('+56') && cleaned.length >= 12) {
+        return `+56 ${cleaned.substring(3, 5)} ${cleaned.substring(5, 9)} ${cleaned.substring(9, 13)}`;
+      }
+      
+      return phone;
+    }
+
+    // Validación en tiempo real del email
+    document.getElementById('email').addEventListener('input', function(e) {
+      const email = e.target.value.trim();
+      const feedback = document.getElementById('emailFeedback');
+      
+      if (!email) {
+        e.target.classList.remove('email-valid', 'email-invalid');
+        feedback.textContent = '';
+        return;
+      }
+      
+      if (!isValidEmail(email)) {
+        e.target.classList.remove('email-valid');
+        e.target.classList.add('email-invalid');
+        feedback.textContent = '❌ Formato de email inválido';
+        feedback.style.color = '#dc3545';
+      } else if (!isValidEmailDomain(email)) {
+        e.target.classList.remove('email-valid');
+        e.target.classList.add('email-invalid');
+        feedback.textContent = '⚠️ Dominio de email no reconocido. Asegúrate de que sea correcto.';
+        feedback.style.color = '#ffc107';
+      } else {
+        e.target.classList.remove('email-invalid');
+        e.target.classList.add('email-valid');
+        feedback.textContent = '✅ Email válido';
+        feedback.style.color = '#198754';
+      }
+    });
+
+    // Validación en tiempo real del teléfono
+    document.getElementById('telefono').addEventListener('input', function(e) {
+      let phone = e.target.value;
+      const feedback = document.getElementById('phoneFeedback');
+      
+      // Formatear automáticamente mientras escribe
+      if (phone.length > 5) {
+        const formatted = formatPhone(phone);
+        if (formatted !== phone) {
+          e.target.value = formatted;
+          phone = formatted;
+        }
+      }
+      
+      if (!phone) {
+        e.target.classList.remove('phone-valid', 'phone-invalid');
+        feedback.textContent = '';
+        return;
+      }
+      
+      if (!isValidPhone(phone)) {
+        e.target.classList.remove('phone-valid');
+        e.target.classList.add('phone-invalid');
+        feedback.textContent = '❌ Formato de teléfono inválido. Usa: +56 9 1234 5678';
+        feedback.style.color = '#dc3545';
+      } else {
+        e.target.classList.remove('phone-invalid');
+        e.target.classList.add('phone-valid');
+        feedback.textContent = '✅ Teléfono válido';
+        feedback.style.color = '#198754';
+      }
+    });
+
+    // Validación de contraseñas coincidentes
+    document.getElementById('confirmar').addEventListener('input', function(e) {
+      const password = document.getElementById('contraseña').value;
+      const confirm = e.target.value;
+      const feedback = document.getElementById('passwordFeedback');
+      
+      if (!confirm) {
+        feedback.textContent = '';
+        return;
+      }
+      
+      if (password !== confirm) {
+        feedback.textContent = '❌ Las contraseñas no coinciden';
+        feedback.style.color = '#dc3545';
+      } else {
+        feedback.textContent = '✅ Las contraseñas coinciden';
+        feedback.style.color = '#198754';
+      }
+    });
+
+    // Validación antes de enviar el formulario
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('contraseña').value;
+      const confirm = document.getElementById('confirmar').value;
+      const nombre = document.getElementById('nombre').value.trim();
+      const phone = document.getElementById('telefono').value.trim();
+      
+      if (!nombre) {
+        e.preventDefault();
+        showDynamicToast('❌ Error de validación', 'Por favor ingresa tu nombre completo.', 'danger');
+        return;
+      }
+      
+      if (!isValidEmail(email)) {
+        e.preventDefault();
+        showDynamicToast('❌ Error de validación', 'Por favor ingresa un correo electrónico válido.', 'danger');
+        return;
+      }
+      
+      if (phone && !isValidPhone(phone)) {
+        e.preventDefault();
+        showDynamicToast('❌ Error de validación', 'Por favor ingresa un número de teléfono válido en formato: +56 9 1234 5678', 'danger');
+        return;
+      }
+      
+      if (password.length < 6) {
+        e.preventDefault();
+        showDynamicToast('❌ Error de validación', 'La contraseña debe tener al menos 6 caracteres.', 'danger');
+        return;
+      }
+      
+      if (password !== confirm) {
+        e.preventDefault();
+        showDynamicToast('❌ Error de validación', 'Las contraseñas no coinciden.', 'danger');
+        return;
+      }
+      
+      // Deshabilitar botón para evitar múltiples envíos
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('submitBtn').innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Registrando...';
+    });
+  </script>
+
+
+ <!-- FOOTER UNIFICADO -->
+  <footer class="bg-dark text-light py-4 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-house-heart me-2"></i>Cabañas Valle Central</h5>
+          <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>Zona boscosa del valle central de Chile</p>
+          <p class="mb-2"><i class="bi bi-telephone me-2"></i>+56 9 1234 5678</p>
+          <p class="mb-0"><i class="bi bi-envelope me-2"></i>info@cabanasvallecentral.cl</p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-link me-2"></i>Enlaces Rápidos</h5>
+          <ul class="list-unstyled">
+            <li><a href="{% url 'index' %}" class="text-light text-decoration-none"><i class="bi bi-house me-1"></i> Inicio</a></li>
+            <li><a href="{% url 'politicas' %}" class="text-light text-decoration-none"><i class="bi bi-shield-check me-1"></i> Políticas</a></li>
+            <li><a href="{% url 'contacto' %}" class="text-light text-decoration-none"><i class="bi bi-telephone me-1"></i> Contacto</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-info-circle me-2"></i>Información</h5>
+          <p>Disfruta de la naturaleza en nuestras acogedoras cabañas. Reserva tu escapada perfecta hoy mismo.</p>
+          <div class="d-flex gap-2">
+            <a href="https://wa.link/cugqzv" target="_blank" class="btn btn-success btn-sm">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+      <hr class="my-3">
+      <div class="text-center">
+        <p class="mb-0">&copy; 2025 Cabañas Valle Central. Todos los derechos reservados.</p>
+        <small class="text-muted">Desarrollado con <i class="bi bi-heart-fill text-danger"></i> para amantes de la naturaleza</small>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

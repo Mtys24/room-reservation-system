@@ -1,0 +1,766 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mi Perfil - Cabañas Valle Central</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+    <style>
+        .profile-card {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #198754, #20c997);
+            color: white;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .email-valid { border-color: #198754 !important; }
+        .email-invalid { border-color: #dc3545 !important; }
+        .phone-valid { border-color: #198754 !important; }
+        .phone-invalid { border-color: #dc3545 !important; }
+        .validation-feedback { font-size: 0.875rem; margin-top: 0.25rem; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .toast-container { z-index: 9999; }
+        .password-strength {
+            height: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+        .strength-weak { background: #dc3545; width: 25%; }
+        .strength-fair { background: #ffc107; width: 50%; }
+        .strength-good { background: #20c997; width: 75%; }
+        .strength-strong { background: #198754; width: 100%; }
+        
+        .btn-logout {
+            background-color: #dc3545 !important;
+            color: white !important;
+            border: 1px solid #dc3545 !important;
+        }
+
+        .btn-logout:hover {
+            background-color: #c82333 !important;
+            border-color: #c82333 !important;
+            color: white !important;
+        }
+        
+        .card-section {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+        .card-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+<!-- NAVBAR GENERAL MEJORADO -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+      <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150" height="150" class="me-2 rounded">
+      <span class="fw-bold text-light">Cabañas Valle Central</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- SECCIÓN IZQUIERDA: Navegación principal -->
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'index' %}">
+            <i class="bi bi-house me-1"></i>Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'index' %}#cabanas">
+          <i class="bi bi-house-door me-1"></i>Cabañas
+        </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contacto' %}">
+            <i class="bi bi-telephone me-1"></i>Contacto
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'politicas' %}">
+            <i class="bi bi-shield-check me-1"></i>Políticas
+          </a>
+        </li>
+      </ul>
+
+      <!-- SECCIÓN CENTRAL: Enlaces específicos del usuario -->
+      <ul class="navbar-nav align-items-center">
+        {% if request.session.usuario_id %}
+          {% if request.session.usuario_tipo == "admin" %}
+            <!-- ENLACES ESPECIALES PARA ADMIN -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle text-warning" href="#" role="button" data-bs-toggle="dropdown">
+                <i class="bi bi-gear me-1"></i>Administración
+              </a>
+              <ul class="dropdown-menu dropdown-menu-dark">
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-index' %}">
+                    <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                    <i class="bi bi-house-door me-2"></i>Gestionar Cabañas
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                    <i class="bi bi-calendar-check me-2"></i>Gestionar Reservas
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                    <i class="bi bi-people me-2"></i>Gestionar Usuarios
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                    <i class="bi bi-graph-up me-2"></i>Reportes
+                  </a>
+                </li>
+              </ul>
+            </li>
+          {% else %}
+            <!-- ENLACES PARA USUARIOS REGULARES -->
+            <li class="nav-item">
+              <a href="{% url 'mis_reservas' %}" class="nav-link text-light">
+                <i class="bi bi-calendar-check me-1"></i> Mis Reservas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'mi_perfil' %}" class="nav-link text-light">
+                <i class="bi bi-person me-1"></i> Mi Perfil
+              </a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
+
+      <!-- SECCIÓN DERECHA: Botones de sesión -->
+      <ul class="navbar-nav align-items-center ms-auto">
+        {% if request.session.usuario_id %}
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="btn btn-logout btn-sm">
+              <i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{% url 'login' %}" class="btn btn-green btn-sm me-2">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'register' %}" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-person-plus me-1"></i>Registrarse
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="container mt-5">
+        <div class="profile-card">
+            <!-- Card del Perfil -->
+            <div class="card shadow-sm">
+                <div class="profile-header card-header text-center py-4">
+                    <i class="bi bi-person-circle display-4 mb-3"></i>
+                    <h3 class="card-title mb-0"><i class="bi bi-person me-2"></i>Mi Perfil</h3>
+                    <p class="mb-0 opacity-75">Gestiona tu información personal</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- SECCIÓN 1: Datos Personales -->
+                    <div class="card-section">
+                        <h5 class="text-success mb-4">
+                            <i class="bi bi-person-lines-fill me-2"></i>Datos Personales
+                        </h5>
+                        
+                        <form method="POST" id="profileForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="profile">
+                            
+                            <div class="row g-3">
+                                <!-- Nombre -->
+                                <div class="col-12">
+                                    <label for="nombre" class="form-label">
+                                        <i class="bi bi-person-badge me-1"></i>Nombre Completo
+                                    </label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" 
+                                           value="{{ usuario.nombre }}" required>
+                                </div>
+
+                                <!-- Email -->
+                                <div class="col-12">
+                                    <label for="email" class="form-label">
+                                        <i class="bi bi-envelope me-1"></i>Correo Electrónico
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ usuario.email }}" required>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>Este será tu usuario para iniciar sesión
+                                    </div>
+                                    <div class="validation-feedback" id="emailFeedback"></div>
+                                </div>
+
+                                <!-- Teléfono -->
+                                <div class="col-12">
+                                    <label for="telefono" class="form-label">
+                                        <i class="bi bi-telephone me-1"></i>Teléfono
+                                    </label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono" 
+                                           value="{{ usuario.telefono|default:'' }}" 
+                                           placeholder="Ej: +56 9 1234 5678">
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>Formato: +56 9 1234 5678 (opcional)
+                                    </div>
+                                    <div class="validation-feedback" id="phoneFeedback"></div>
+                                </div>
+
+                                <!-- Información de solo lectura -->
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-person-gear me-1"></i>Tipo de Usuario
+                                    </label>
+                                    <input type="text" class="form-control" value="{{ usuario.get_tipo_display }}" readonly>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-calendar-plus me-1"></i>Fecha de Registro
+                                    </label>
+                                    <input type="text" class="form-control" value="{{ usuario.fecha_registro|date:'d/m/Y' }}" readonly>
+                                </div>
+
+                                <!-- Botón Actualizar Perfil -->
+                                <div class="col-12 mt-3">
+                                    <button type="submit" class="btn btn-success w-100" id="submitProfileBtn">
+                                        <i class="bi bi-check-circle me-2"></i>Actualizar Datos Personales
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- SECCIÓN 2: Cambio de Contraseña -->
+                    <div class="card-section">
+                        <h5 class="text-success mb-4">
+                            <i class="bi bi-key me-2"></i>Cambiar Contraseña
+                        </h5>
+                        
+                        <form method="POST" id="passwordForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="password">
+                            
+                            <div class="row g-3">
+                                <!-- Contraseña Actual -->
+                                <div class="col-12">
+                                    <label for="current_password" class="form-label">
+                                        <i class="bi bi-lock me-1"></i>Contraseña Actual
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="current_password" 
+                                               name="current_password" placeholder="Ingresa tu contraseña actual">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleCurrentPassword">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Nueva Contraseña -->
+                                <div class="col-12">
+                                    <label for="new_password" class="form-label">
+                                        <i class="bi bi-key me-1"></i>Nueva Contraseña
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="new_password" 
+                                               name="new_password" placeholder="Mínimo 6 caracteres"
+                                               minlength="6" onkeyup="checkPasswordStrength()">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="password-strength" id="passwordStrength"></div>
+                                    <div class="form-text" id="strengthText"></div>
+                                </div>
+
+                                <!-- Confirmar Nueva Contraseña -->
+                                <div class="col-12">
+                                    <label for="confirm_password" class="form-label">
+                                        <i class="bi bi-key-fill me-1"></i>Confirmar Nueva Contraseña
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="confirm_password" 
+                                               name="confirm_password" placeholder="Repite tu nueva contraseña"
+                                               onkeyup="checkPasswordMatch()">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text" id="matchText"></div>
+                                </div>
+
+                                <!-- Botón Cambiar Contraseña -->
+                                <div class="col-12 mt-2">
+                                    <button type="submit" class="btn btn-outline-success w-100" id="submitPasswordBtn">
+                                        <i class="bi bi-key-fill me-2"></i>Cambiar Contraseña
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- SECCIÓN 3: Información de la cuenta -->
+                    <div>
+                        <h6 class="text-success mb-3">
+                            <i class="bi bi-info-circle me-2"></i>Información de tu cuenta
+                        </h6>
+                        <div class="row g-2 text-muted small">
+                            <div class="col-12">
+                                <i class="bi bi-calendar me-2"></i>
+                                <strong>Miembro desde:</strong> {{ usuario.fecha_registro|date:'d \d\e F \d\e Y' }}
+                            </div>
+                            {% if usuario.telefono %}
+                            <div class="col-12">
+                                <i class="bi bi-telephone me-2"></i>
+                                <strong>Teléfono:</strong> {{ usuario.telefono }}
+                            </div>
+                            {% endif %}
+                            <div class="col-12">
+                                <i class="bi bi-envelope me-2"></i>
+                                <strong>Email:</strong> {{ usuario.email }}
+                            </div>
+                            <div class="col-12">
+                                <i class="bi bi-shield-check me-2"></i>
+                                <strong>Seguridad:</strong> Puedes cambiar tu contraseña cuando quieras.
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'index' %}" class="btn btn-outline-secondary flex-fill">
+                                    <i class="bi bi-arrow-left me-1"></i>Volver al Inicio
+                                </a>
+                                <a href="{% url 'mis_reservas' %}" class="btn btn-outline-primary flex-fill">
+                                    <i class="bi bi-calendar-check me-1"></i>Mis Reservas
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema de notificaciones Toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+                     role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi 
+                                {% if message.tags == 'success' %}bi-check-circle-fill
+                                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
+                                {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                                {% else %}bi-info-circle-fill{% endif %} me-2"></i>
+                            {{ message }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                                data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- WhatsApp flotante -->
+    <a href="https://wa.link/cugqzv" target="_blank" class="whatsapp-float" title="Contáctanos por WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+        <span class="wsp-popup">Para más información contáctanos por WhatsApp</span>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Inicializar toasts automáticamente
+        document.addEventListener('DOMContentLoaded', function() {
+            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            var toastList = toastElList.map(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+                return toast;
+            });
+            
+            setTimeout(function() {
+                toastList.forEach(function(toast) {
+                    toast.hide();
+                });
+            }, 5000);
+        });
+
+        // Toggle mostrar/ocultar contraseña
+        document.getElementById('toggleCurrentPassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('current_password');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+        
+        document.getElementById('toggleNewPassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('new_password');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+        
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('confirm_password');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+
+        // Validación de email mejorada
+        function isValidEmail(email) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return emailRegex.test(email);
+        }
+
+        function isValidEmailDomain(email) {
+            const domains = [
+                'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com',
+                'protonmail.com', 'live.com', 'msn.com', 'aol.com', 'yandex.com',
+                'mail.com', 'zoho.com', 'gmx.com', 'hubspot.com', 'salesforce.com',
+                'microsoft.com', 'apple.com', 'spotify.com', 'netflix.com', 'meta.com',
+                'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
+                'github.com', 'gitlab.com', 'bitbucket.com', 'stackoverflow.com',
+                'medium.com', 'reddit.com', 'discord.com', 'slack.com', 'trello.com',
+                'atlassian.com', 'google.com', 'amazon.com', 'microsoft.com',
+                'oracle.com', 'ibm.com', 'intel.com', 'amd.com', 'nvidia.com',
+                'dell.com', 'hp.com', 'lenovo.com', 'asus.com', 'acer.com',
+                'msi.com', 'samsung.com', 'lg.com', 'sony.com', 'panasonic.com',
+                'philips.com', 'bosch.com', 'siemens.com', 'ge.com', 'whirlpool.com',
+                'usm.cl'
+            ];
+            
+            const domain = email.split('@')[1];
+            return domains.includes(domain?.toLowerCase());
+        }
+
+        // Validación de teléfono chileno
+        function isValidPhone(phone) {
+            if (!phone) return true; // Opcional
+            
+            const phoneRegex = /^(\+56\s?9\s?[0-9]{4}\s?[0-9]{4}|\+56\s?[0-9]{1,2}\s?[0-9]{4}\s?[0-9]{4})$/;
+            return phoneRegex.test(phone.replace(/\s/g, ''));
+        }
+
+        function formatPhone(phone) {
+            let cleaned = phone.replace(/[^\d+]/g, '');
+            
+            if (cleaned.startsWith('569') && cleaned.length >= 12) {
+                return `+56 9 ${cleaned.substring(3, 7)} ${cleaned.substring(7, 11)}`;
+            }
+            else if (cleaned.startsWith('+569') && cleaned.length >= 12) {
+                return `+56 9 ${cleaned.substring(4, 8)} ${cleaned.substring(8, 12)}`;
+            }
+            else if (cleaned.startsWith('56') && cleaned.length >= 11) {
+                return `+56 ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)} ${cleaned.substring(8, 12)}`;
+            }
+            else if (cleaned.startsWith('+56') && cleaned.length >= 12) {
+                return `+56 ${cleaned.substring(3, 5)} ${cleaned.substring(5, 9)} ${cleaned.substring(9, 13)}`;
+            }
+            
+            return phone;
+        }
+
+        // Validación en tiempo real del email
+        document.getElementById('email').addEventListener('input', function(e) {
+            const email = e.target.value.trim();
+            const feedback = document.getElementById('emailFeedback');
+            
+            if (!email) {
+                e.target.classList.remove('email-valid', 'email-invalid');
+                feedback.textContent = '';
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                e.target.classList.remove('email-valid');
+                e.target.classList.add('email-invalid');
+                feedback.textContent = '❌ Formato de email inválido';
+                feedback.style.color = '#dc3545';
+            } else if (!isValidEmailDomain(email)) {
+                e.target.classList.remove('email-valid');
+                e.target.classList.add('email-invalid');
+                feedback.textContent = '⚠️ Dominio de email no reconocido. Asegúrate de que sea correcto.';
+                feedback.style.color = '#ffc107';
+            } else {
+                e.target.classList.remove('email-invalid');
+                e.target.classList.add('email-valid');
+                feedback.textContent = '✅ Email válido';
+                feedback.style.color = '#198754';
+            }
+        });
+
+        // Validación en tiempo real del teléfono
+        document.getElementById('telefono').addEventListener('input', function(e) {
+            let phone = e.target.value;
+            const feedback = document.getElementById('phoneFeedback');
+            
+            // Formatear automáticamente mientras escribe
+            if (phone.length > 5) {
+                const formatted = formatPhone(phone);
+                if (formatted !== phone) {
+                    e.target.value = formatted;
+                    phone = formatted;
+                }
+            }
+            
+            if (!phone) {
+                e.target.classList.remove('phone-valid', 'phone-invalid');
+                feedback.textContent = '';
+                return;
+            }
+            
+            if (!isValidPhone(phone)) {
+                e.target.classList.remove('phone-valid');
+                e.target.classList.add('phone-invalid');
+                feedback.textContent = '❌ Formato de teléfono inválido. Usa: +56 9 1234 5678';
+                feedback.style.color = '#dc3545';
+            } else {
+                e.target.classList.remove('phone-invalid');
+                e.target.classList.add('phone-valid');
+                feedback.textContent = '✅ Teléfono válido';
+                feedback.style.color = '#198754';
+            }
+        });
+
+        // Función para mostrar toasts dinámicos
+        function showDynamicToast(title, message, type) {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const toastHTML = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" 
+                     role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 
+                                       type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                                       type === 'warning' ? 'bi-exclamation-triangle-fill' : 
+                                       'bi-info-circle-fill'} me-2"></i>
+                            <strong>${title}</strong><br>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                                data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+            
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Eliminar el toast del DOM después de ocultarse
+            toastElement.addEventListener('hidden.bs.toast', function () {
+                toastElement.remove();
+            });
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                toast.hide();
+            }, 5000);
+        }
+
+        // Validación antes de enviar el formulario de datos personales
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            const email = document.getElementById('email').value.trim();
+            const nombre = document.getElementById('nombre').value.trim();
+            const phone = document.getElementById('telefono').value.trim();
+            
+            if (!nombre) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Por favor ingresa tu nombre completo.', 'danger');
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Por favor ingresa un correo electrónico válido.', 'danger');
+                return;
+            }
+            
+            if (phone && !isValidPhone(phone)) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Por favor ingresa un número de teléfono válido en formato: +56 9 1234 5678', 'danger');
+                return;
+            }
+            
+            // Deshabilitar botón para evitar múltiples envíos
+            document.getElementById('submitProfileBtn').disabled = true;
+            document.getElementById('submitProfileBtn').innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Actualizando...';
+        });
+
+        // Validación antes de enviar el formulario de cambio de contraseña
+        document.getElementById('passwordForm').addEventListener('submit', function(e) {
+            const currentPassword = document.getElementById('current_password').value;
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (!currentPassword) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Por favor ingresa tu contraseña actual.', 'danger');
+                return;
+            }
+            
+            if (!newPassword) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Por favor ingresa una nueva contraseña.', 'danger');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'La nueva contraseña debe tener al menos 6 caracteres.', 'danger');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                e.preventDefault();
+                showDynamicToast('❌ Error de validación', 'Las nuevas contraseñas no coinciden.', 'danger');
+                return;
+            }
+            
+            // Deshabilitar botón para evitar múltiples envíos
+            document.getElementById('submitPasswordBtn').disabled = true;
+            document.getElementById('submitPasswordBtn').innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Cambiando...';
+        });
+
+        // Función para verificar fortaleza de contraseña
+        function checkPasswordStrength() {
+            const password = document.getElementById('new_password').value;
+            const strengthBar = document.getElementById('passwordStrength');
+            const strengthText = document.getElementById('strengthText');
+            
+            let strength = 0;
+            let text = '';
+            let className = '';
+            
+            // Longitud
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            
+            // Caracteres mezclados
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            // Evaluar fuerza
+            if (password.length === 0) {
+                text = '';
+                className = '';
+                strengthBar.style.width = '0%';
+            } else if (strength <= 2) {
+                text = '🔴 Débil';
+                className = 'strength-weak';
+            } else if (strength === 3) {
+                text = '🟡 Regular';
+                className = 'strength-fair';
+            } else if (strength === 4) {
+                text = '🟢 Buena';
+                className = 'strength-good';
+            } else {
+                text = '✅ Excelente';
+                className = 'strength-strong';
+            }
+            
+            strengthBar.className = 'password-strength ' + className;
+            strengthText.textContent = text;
+            strengthText.className = 'form-text ' + 
+                (strength <= 2 ? 'text-danger' : 
+                 strength === 3 ? 'text-warning' : 'text-success');
+        }
+        
+        // Función para verificar coincidencia de contraseñas
+        function checkPasswordMatch() {
+            const password = document.getElementById('new_password').value;
+            const confirm = document.getElementById('confirm_password').value;
+            const matchText = document.getElementById('matchText');
+            
+            if (confirm.length === 0) {
+                matchText.textContent = '';
+            } else if (password === confirm) {
+                matchText.textContent = '✅ Las contraseñas coinciden';
+                matchText.className = 'form-text text-success';
+            } else {
+                matchText.textContent = '❌ Las contraseñas no coinciden';
+                matchText.className = 'form-text text-danger';
+            }
+        }
+    </script>
+
+    <!-- FOOTER UNIFICADO -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h5><i class="bi bi-house-heart me-2"></i>Cabañas Valle Central</h5>
+                    <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>Zona boscosa del valle central de Chile</p>
+                    <p class="mb-2"><i class="bi bi-telephone me-2"></i>+56 9 1234 5678</p>
+                    <p class="mb-0"><i class="bi bi-envelope me-2"></i>info@cabanasvallecentral.cl</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5><i class="bi bi-link me-2"></i>Enlaces Rápidos</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'index' %}" class="text-light text-decoration-none"><i class="bi bi-house me-1"></i> Inicio</a></li>
+                        <li><a href="{% url 'politicas' %}" class="text-light text-decoration-none"><i class="bi bi-shield-check me-1"></i> Políticas</a></li>
+                        <li><a href="{% url 'contacto' %}" class="text-light text-decoration-none"><i class="bi bi-telephone me-1"></i> Contacto</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5><i class="bi bi-info-circle me-2"></i>Información</h5>
+                    <p>Disfruta de la naturaleza en nuestras acogedoras cabañas. Reserva tu escapada perfecta hoy mismo.</p>
+                    <div class="d-flex gap-2">
+                        <a href="https://wa.link/cugqzv" target="_blank" class="btn btn-success btn-sm">
+                            <i class="bi bi-whatsapp"></i> WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Cabañas Valle Central. Todos los derechos reservados.</p>
+                <small class="text-muted">Desarrollado con <i class="bi bi-heart-fill text-danger"></i> para amantes de la naturaleza</small>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,298 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Políticas y Términos - Cabañas Valle Central</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <style>
+    .policy-section {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background-color: #f8f9fa;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .policy-section h2 {
+      margin-top: 2rem;
+      color: #198754;
+      border-bottom: 2px solid #198754;
+      padding-bottom: 0.5rem;
+    }
+    .policy-section h3 {
+      color: #2c5530;
+      margin-top: 1.5rem;
+    }
+    .policy-section p {
+      margin-bottom: 0.8rem;
+      text-align: justify;
+    }
+    .policy-section ul {
+      padding-left: 1.5rem;
+    }
+    .policy-section li {
+      margin-bottom: 0.5rem;
+    }
+    .toast-container { z-index: 9999; }
+
+      .btn-logout {
+      background-color: #dc3545 !important;
+      color: white !important;
+      border: 1px solid #dc3545 !important;
+    }
+
+    .btn-logout:hover {
+      background-color: #c82333 !important;
+      border-color: #c82333 !important;
+      color: white !important;
+    }
+
+  </style>
+</head>
+<body>
+ <!-- NAVBAR GENERAL MEJORADO -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+      <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150" height="150" class="me-2 rounded">
+      <span class="fw-bold text-light">Cabañas Valle Central</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- SECCIÓN IZQUIERDA: Navegación principal -->
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'index' %}">
+            <i class="bi bi-house me-1"></i>Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'index' %}#cabanas">
+          <i class="bi bi-house-door me-1"></i>Cabañas
+        </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'contacto' %}">
+            <i class="bi bi-telephone me-1"></i>Contacto
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'politicas' %}">
+            <i class="bi bi-shield-check me-1"></i>Políticas
+          </a>
+        </li>
+      </ul>
+
+      <!-- SECCIÓN CENTRAL: Enlaces específicos del usuario -->
+      <ul class="navbar-nav align-items-center">
+        {% if request.session.usuario_id %}
+          {% if request.session.usuario_tipo == "admin" %}
+            <!-- ENLACES ESPECIALES PARA ADMIN -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle text-warning" href="#" role="button" data-bs-toggle="dropdown">
+                <i class="bi bi-gear me-1"></i>Administración
+              </a>
+              <ul class="dropdown-menu dropdown-menu-dark">
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-index' %}">
+                    <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                    <i class="bi bi-house-door me-2"></i>Gestionar Cabañas
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                    <i class="bi bi-calendar-check me-2"></i>Gestionar Reservas
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                    <i class="bi bi-people me-2"></i>Gestionar Usuarios
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                    <i class="bi bi-graph-up me-2"></i>Reportes
+                  </a>
+                </li>
+              </ul>
+            </li>
+          {% else %}
+            <!-- ENLACES PARA USUARIOS REGULARES -->
+            <li class="nav-item">
+              <a href="{% url 'mis_reservas' %}" class="nav-link text-light">
+                <i class="bi bi-calendar-check me-1"></i> Mis Reservas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'mi_perfil' %}" class="nav-link text-light">
+                <i class="bi bi-person me-1"></i> Mi Perfil
+              </a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
+
+      <!-- SECCIÓN DERECHA: Botones de sesión -->
+      <ul class="navbar-nav align-items-center ms-auto">
+        {% if request.session.usuario_id %}
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="btn btn-logout btn-sm">
+              <i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{% url 'login' %}" class="btn btn-green btn-sm me-2">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'register' %}" class="btn btn-green btn-sm">
+              <i class="bi bi-person-plus me-1"></i>Registrarse
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  <main class="policy-section my-4">
+    <h1 class="text-center text-success mb-4"><i class="bi bi-shield-check me-2"></i>Políticas y Términos</h1>
+
+    <h2><i class="bi bi-people me-2"></i>Políticas Generales de Uso</h2>
+    <p>Los huéspedes deberán presentar un documento de identidad al momento del check-in. No se permite el ingreso de personas no registradas.</p>
+    <p>El uso de las instalaciones debe realizarse con respeto a las normas de convivencia y al entorno natural.</p>
+
+    <h2><i class="bi bi-file-text me-2"></i>Términos y Condiciones del Servicio</h2>
+    <p>Este sistema permite a los usuarios registrarse, reservar cabañas disponibles y gestionar sus reservas. El uso indebido del sistema puede resultar en la suspensión de la cuenta.</p>
+    <p>La disponibilidad de cabañas está sujeta a cambios sin previo aviso hasta que la reserva esté confirmada.</p>
+    <p>Las tarifas pueden variar según temporada, promociones u otros factores. El precio se considera final al momento de confirmar la reserva.</p>
+
+    <h2><i class="bi bi-calendar-x me-2"></i>Política de Cancelación y Reembolsos</h2>
+    <ul>
+      <li><strong>Cancelaciones con 72+ horas de anticipación:</strong> Reembolso completo</li>
+      <li><strong>Cancelaciones entre 24-72 horas:</strong> 50% del monto pagado</li>
+      <li><strong>Cancelaciones con menos de 24 horas:</strong> No hay reembolso</li>
+      <li><strong>No show (no presentarse):</strong> No hay reembolso</li>
+    </ul>
+
+    <h2><i class="bi bi-clock me-2"></i>Check-in y Check-out</h2>
+    <p><strong><i class="bi bi-box-arrow-in-right me-1"></i>Check-in:</strong> Desde las 11:00 hs.</p>
+    <p><strong><i class="bi bi-box-arrow-right me-1"></i>Check-out:</strong> Hasta las 12:00 hs.</p>
+    <p><em>Se cobrará media jornada adicional si se excede este horario sin autorización.</em></p>
+
+    <h2><i class="bi bi-heart me-2"></i>Política de Mascotas</h2>
+    <p>Se aceptan mascotas pequeñas sin costo adicional. Deben estar supervisadas en todo momento. No se permite el ingreso a camas o sillones.</p>
+
+    <h2><i class="bi bi-shield-lock me-2"></i>Uso del Sistema y Seguridad</h2>
+    <p>La información personal del usuario se almacena de forma segura y no se comparte con terceros sin consentimiento.</p>
+    <p>El usuario es responsable de la veracidad de los datos ingresados en el sistema.</p>
+
+    <h2><i class="bi bi-eye me-2"></i>Política de Privacidad</h2>
+    <p>Protegemos la privacidad de nuestros usuarios. La información personal se utiliza exclusivamente para:</p>
+    <ul>
+      <li>Gestionar reservas y pagos</li>
+      <li>Enviar confirmaciones y actualizaciones</li>
+      <li>Mejorar la experiencia del usuario</li>
+    </ul>
+
+    <h2><i class="bi bi-exclamation-triangle me-2"></i>Limitación de Responsabilidad</h2>
+    <p>"Cabañas Valle Central" no se hace responsable por caídas del sistema, pérdidas de información o errores en el proceso de reserva ocasionados por mal uso, desconexiones u otros factores técnicos fuera de su control.</p>
+
+    <div class="alert alert-info mt-4">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Nota:</strong> Estas políticas están sujetas a cambios. Se notificará a los usuarios sobre cualquier modificación significativa.
+    </div>
+  </main>
+
+  <!-- FOOTER UNIFICADO -->
+  <footer class="bg-dark text-light py-4 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-house-heart me-2"></i>Cabañas Valle Central</h5>
+          <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>Zona boscosa del valle central de Chile</p>
+          <p class="mb-2"><i class="bi bi-telephone me-2"></i>+56 9 1234 5678</p>
+          <p class="mb-0"><i class="bi bi-envelope me-2"></i>info@cabanasvallecentral.cl</p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-link me-2"></i>Enlaces Rápidos</h5>
+          <ul class="list-unstyled">
+            <li><a href="{% url 'index' %}" class="text-light text-decoration-none"><i class="bi bi-house me-1"></i> Inicio</a></li>
+            <li><a href="{% url 'politicas' %}" class="text-light text-decoration-none"><i class="bi bi-shield-check me-1"></i> Políticas</a></li>
+            <li><a href="{% url 'contacto' %}" class="text-light text-decoration-none"><i class="bi bi-telephone me-1"></i> Contacto</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-info-circle me-2"></i>Información</h5>
+          <p>Disfruta de la naturaleza en nuestras acogedoras cabañas. Reserva tu escapada perfecta hoy mismo.</p>
+          <div class="d-flex gap-2">
+            <a href="https://wa.link/cugqzv" target="_blank" class="btn btn-success btn-sm">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+      <hr class="my-3">
+      <div class="text-center">
+        <p class="mb-0">&copy; 2025 Cabañas Valle Central. Todos los derechos reservados.</p>
+        <small class="text-muted">Desarrollado con <i class="bi bi-heart-fill text-danger"></i> para amantes de la naturaleza</small>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sistema de notificaciones Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi 
+                {% if message.tags == 'success' %}bi-check-circle-fill
+                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
+                {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                {% else %}bi-info-circle-fill{% endif %} me-2"></i>
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- WhatsApp flotante -->
+  <a href="https://wa.link/cugqzv" target="_blank" class="whatsapp-float" title="Contáctanos por WhatsApp">
+    <i class="bi bi-whatsapp"></i>
+    <span class="wsp-popup">Para más información contáctanos por WhatsApp</span>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Inicializar toasts automáticamente
+    document.addEventListener('DOMContentLoaded', function() {
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      var toastList = toastElList.map(function(toastEl) {
+        return new bootstrap.Toast(toastEl);
+      });
+      toastList.forEach(toast => toast.show());
+    });
+  </script>
+</body>
+</html>

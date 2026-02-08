@@ -1,0 +1,32 @@
+Hola {{ usuario.nombre }},
+
+Gracias por reservar con Cabañas Valle Central.
+
+Detalles de la reserva:
+- ID reserva: {{ reserva.id }}
+- Cabaña: {{ reserva.cabana.nombre }}
+- Fecha entrada: {{ reserva.fecha_inicio }}
+- Fecha salida:  {{ reserva.fecha_fin }}
+- Total estimado: ${{ total }}
+
+{% if payment_method == 'transferencia' %}
+Instrucciones para transferencia bancaria:
+Banco: Banco Estado
+Cuenta: 999211224568
+Tipo de cuenta: Corriente
+Titular: Cabañas Valle Central
+Referencia: RES{{ reserva.id }}
+
+El check-in de las cabañas es a las 11:00 a.m y el check out a las 12:00 p.m
+
+Una vez recibida la transferencia confirmaremos la reserva.
+{% elif payment_method == 'online' %}
+Seleccionaste pago en línea. Si completaste el pago, recibirás otro correo de confirmación cuando lo recibamos.
+{% else %}
+Seleccionaste pagar en destino (efectivo / tarjeta al llegar).
+{% endif %}
+
+Si tienes dudas contáctanos por este mismo correo o por WhatsApp.
+
+Saludos,
+Cabañas Valle Central

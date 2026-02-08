@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel Administrador - Cabañas Valle Central</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <style>
+    /* ELIMINADO: Los estilos que afectaban el tamaño del logo */
+  </style>
+</head>
+<body>
+  <!-- NAVBAR ADMIN ESTANDARIZADO -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="{% url 'admin-index' %}">
+        <span class="fs-4">
+          <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150px" height="150px">
+        </span>
+        <span class="ms-2">Cabañas Valle Central - Admin</span>
+      </a>
+      <div class="d-flex align-items-center">
+        <!-- Dropdown de Administración -->
+        <div class="dropdown me-2">
+          <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-gear me-1"></i> Administración
+          </button>
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-index' %}">
+                <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                <i class="bi bi-house-door me-2"></i> Gestionar Cabañas
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                <i class="bi bi-calendar-check me-2"></i> Gestionar Reservas
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                <i class="bi bi-people me-2"></i> Gestionar Usuarios
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                <i class="bi bi-graph-up me-2"></i> Reportes
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'admin-historial' %}">
+                <i class="bi bi-clock-history me-2"></i> Historial
+              </a>
+            </li>
+          </ul>
+        </div>
+        <a href="{% url 'index' %}" class="btn btn-light">Volver al sitio</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-10 text-center">
+        <h1 class="mb-4 text-success">Bienvenido al Panel de Administración</h1>
+        <p class="lead mb-5">
+          Aquí puedes gestionar las cabañas, revisar y administrar las reservas, usuarios y reportes del sistema.<br>
+          Selecciona una opción en el menú desplegable o en las tarjetas para comenzar.
+        </p>
+        
+        <div class="row g-4">
+          <!-- Administrar Cabañas -->
+          <div class="col-md-6">
+            <div class="card shadow h-100">
+              <div class="card-body d-flex flex-column align-items-center">
+                <i class="bi bi-house-door-fill fs-1 text-success mb-3"></i>
+                <h4 class="card-title mb-2">Administrar Cabañas</h4>
+                <p class="card-text mb-4">Agrega, edita o elimina cabañas y gestiona su disponibilidad y características.</p>
+                <a href="{% url 'admin-cabanas' %}" class="btn btn-green w-100">Ir a Cabañas</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Administrar Reservas -->
+          <div class="col-md-6">
+            <div class="card shadow h-100">
+              <div class="card-body d-flex flex-column align-items-center">
+                <i class="bi bi-calendar-check-fill fs-1 text-success mb-3"></i>
+                <h4 class="card-title mb-2">Administrar Reservas</h4>
+                <p class="card-text mb-4">Revisa, confirma o cancela reservas realizadas por los clientes.</p>
+                <a href="{% url 'admin-reservas' %}" class="btn btn-green w-100">Ir a Reservas</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Administrar Usuarios -->
+          <div class="col-md-6">
+            <div class="card shadow h-100">
+              <div class="card-body d-flex flex-column align-items-center">
+                <i class="bi bi-people-fill fs-1 text-success mb-3"></i>
+                <h4 class="card-title mb-2">Administrar Usuarios</h4>
+                <p class="card-text mb-4">Gestiona usuarios del sistema, sus permisos y información personal.</p>
+                <a href="{% url 'admin-usuarios' %}" class="btn btn-green w-100">Ir a Usuarios</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ver Reportes -->
+          <div class="col-md-6">
+            <div class="card shadow h-100">
+              <div class="card-body d-flex flex-column align-items-center">
+                <i class="bi bi-graph-up fs-1 text-success mb-3"></i>
+                <h4 class="card-title mb-2">Ver Reportes</h4>
+                <p class="card-text mb-4">Consulta reportes detallados, estadísticas y métricas del sistema.</p>
+                <a href="{% url 'admin-reportes' %}" class="btn btn-green w-100">Ir a Reportes</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta para Historial -->
+        <div class="row g-4 mt-2">
+          <div class="col-md-6 offset-md-3">
+            <div class="card shadow h-100">
+              <div class="card-body d-flex flex-column align-items-center">
+                <i class="bi bi-clock-history fs-1 text-success mb-3"></i>
+                <h4 class="card-title mb-2">Ver Historial</h4>
+                <p class="card-text mb-4">Consulta el registro completo de acciones y actividades del sistema.</p>
+                <a href="{% url 'admin-historial' %}" class="btn btn-green w-100">Ir a Historial</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-5">
+        <a href="{% url 'index' %}" class="btn btn-outline-success">Volver a la página principal del sitio</a>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

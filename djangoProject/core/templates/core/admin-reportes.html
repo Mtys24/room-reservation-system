@@ -1,0 +1,386 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reportes - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+</head>
+<body>
+  <!-- NAVBAR ADMIN ESTANDARIZADO -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'admin-index' %}">
+            <span class="fs-4">
+                <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150px" height="150px">
+            </span>
+            <span class="ms-2">Cabañas Valle Central - Admin</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Dropdown de Administración -->
+            <div class="dropdown me-2">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear me-1"></i> Administración
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-index' %}">
+                            <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                            <i class="bi bi-house-door me-2"></i> Gestionar Cabañas
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                            <i class="bi bi-calendar-check me-2"></i> Gestionar Reservas
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                            <i class="bi bi-people me-2"></i> Gestionar Usuarios
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                            <i class="bi bi-graph-up me-2"></i> Reportes
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item" href="{% url 'admin-historial' %}"><i class="bi bi-clock-history me-2"></i> Historial</a>
+                </ul>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-light">Volver al sitio</a>
+        </div>
+    </div>
+  </nav>
+
+
+    <div class="container mt-4">
+        <h2 class="text-success mb-4">
+            <i class="bi bi-graph-up"></i> Reportes y Estadísticas
+        </h2>
+
+        <!-- Instrucciones -->
+        <div class="alert alert-info mb-4">
+            <h6><i class="bi bi-info-circle"></i> Instrucciones</h6>
+            <p class="mb-0">Selecciona un período y haz clic en "Aplicar Filtro" para generar los reportes. La página se mantendrá vacía hasta que apliques un filtro.</p>
+        </div>
+
+        <!-- Filtros de Reporte -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtros de Reporte</h6>
+            </div>
+            <div class="card-body">
+                <form method="get" id="filterForm">
+                    <div class="row g-3">
+                        <!-- Tipo de Filtro -->
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Filtro</label>
+                            <select class="form-select" name="tipo_filtro" id="tipoFiltro">
+                                <option value="rango" {% if tipo_filtro == 'rango' %}selected{% endif %}>Por Rango de Fechas</option>
+                                <option value="mes" {% if tipo_filtro == 'mes' %}selected{% endif %}>Por Mes</option>
+                                <option value="dia" {% if tipo_filtro == 'dia' %}selected{% endif %}>Por Día</option>
+                            </select>
+                        </div>
+
+                        <!-- Campos para Rango de Fechas -->
+                        <div class="col-md-4" id="rangoGroup">
+                            <label class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" name="fecha_inicio" id="fechaInicio" value="{{ fecha_inicio }}">
+                        </div>
+                        <div class="col-md-4" id="rangoFinGroup">
+                            <label class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" name="fecha_fin" id="fechaFin" value="{{ fecha_fin }}">
+                        </div>
+
+                        <!-- Campos para Mes -->
+                        <div class="col-md-4" id="mesGroup" style="display: none;">
+                            <label class="form-label">Mes</label>
+                            <input type="month" class="form-control" name="fecha_mes" id="fechaMes" value="{{ fecha_mes }}">
+                        </div>
+
+                        <!-- Campos para Día -->
+                        <div class="col-md-4" id="diaGroup" style="display: none;">
+                            <label class="form-label">Día</label>
+                            <input type="date" class="form-control" name="fecha_dia" id="fechaDia" value="{{ fecha_dia }}">
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="col-md-12 mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-funnel"></i> Aplicar Filtro
+                            </button>
+                            <a href="{% url 'admin-reportes' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Limpiar
+                            </a>
+                            
+                            {% if filtro_aplicado %}
+                            <button type="submit" name="exportar_excel" value="1" class="btn btn-outline-primary float-end">
+                                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Mostrar período actual si hay filtro -->
+        {% if filtro_aplicado %}
+        <div class="alert alert-success">
+            <h6><i class="bi bi-calendar-check"></i> Período Seleccionado</h6>
+            <p class="mb-0"><strong>{{ filtro_actual }}</strong> - {{ periodo_actual }}</p>
+        </div>
+
+        <!-- Tarjetas de Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ total_reservas }}</h4>
+                        <p class="card-text">Total Reservas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ reservas_confirmadas }}</h4>
+                        <p class="card-text">Confirmadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">${{ ingresos_totales|floatformat:0 }}</h4>
+                        <p class="card-text">Ingresos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">{{ usuarios_nuevos }}</h4>
+                        <p class="card-text">Usuarios Nuevos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas de Reservas -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Estado de Reservas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-success">{{ reservas_confirmadas }}</h3>
+                                    <small>Confirmadas</small>
+                                    <br>
+                                    <span class="badge bg-success">{{ tasa_confirmacion|floatformat:1 }}%</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-warning">{{ reservas_pendientes }}</h3>
+                                    <small>Pendientes</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-danger">{{ reservas_canceladas }}</h3>
+                                    <small>Canceladas</small>
+                                    <br>
+                                    <span class="badge bg-danger">{{ tasa_cancelacion|floatformat:1 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-house"></i> Reservas por Cabaña</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if reservas_por_cabana %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Cabaña</th>
+                                            <th>Reservas</th>
+                                            <th>Ingresos</th>
+                                            <th>% del Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in reservas_por_cabana %}
+                                        <tr>
+                                            <td>{{ item.cabana__nombre }}</td>
+                                            <td>{{ item.total }}</td>
+                                            <td>${{ item.ingresos|floatformat:0 }}</td>
+                                            <td>{{ item.porcentaje|floatformat:1 }}%</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center">No hay datos para mostrar</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte Detallado -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Reporte Detallado</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Período</th>
+                                <th>Reservas Totales</th>
+                                <th>Confirmadas</th>
+                                <th>Pendientes</th>
+                                <th>Canceladas</th>
+                                <th>Ingresos</th>
+                                <th>Tasa Confirmación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ periodo_actual }}</td>
+                                <td>{{ total_reservas }}</td>
+                                <td class="text-success">{{ reservas_confirmadas }}</td>
+                                <td class="text-warning">{{ reservas_pendientes }}</td>
+                                <td class="text-danger">{{ reservas_canceladas }}</td>
+                                <td class="text-success">${{ ingresos_totales|floatformat:0 }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ tasa_confirmacion|floatformat:1 }}%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservas por Día (si es filtro por mes) -->
+        {% if reservas_por_dia %}
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Reservas por Día</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Total Reservas</th>
+                                <th>Confirmadas</th>
+                                <th>Ingresos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in reservas_por_dia %}
+                            <tr>
+                                <td>{{ item.fecha }}</td>
+                                <td>{{ item.total }}</td>
+                                <td>{{ item.confirmadas }}</td>
+                                <td>${{ item.ingresos|floatformat:0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Mensaje cuando no hay filtro aplicado -->
+        <div class="text-center py-5">
+            <i class="bi bi-funnel display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">No hay datos para mostrar</h4>
+            <p class="text-muted">Selecciona un período y aplica el filtro para generar reportes.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Manejar visibilidad de campos según tipo de filtro
+        document.addEventListener('DOMContentLoaded', function() {
+            const tipoFiltro = document.getElementById('tipoFiltro');
+            const rangoGroup = document.getElementById('rangoGroup');
+            const rangoFinGroup = document.getElementById('rangoFinGroup');
+            const mesGroup = document.getElementById('mesGroup');
+            const diaGroup = document.getElementById('diaGroup');
+            
+            function actualizarCampos() {
+                // Ocultar todos primero
+                rangoGroup.style.display = 'none';
+                rangoFinGroup.style.display = 'none';
+                mesGroup.style.display = 'none';
+                diaGroup.style.display = 'none';
+                
+                // Mostrar según selección
+                switch(tipoFiltro.value) {
+                    case 'rango':
+                        rangoGroup.style.display = 'block';
+                        rangoFinGroup.style.display = 'block';
+                        break;
+                    case 'mes':
+                        mesGroup.style.display = 'block';
+                        break;
+                    case 'dia':
+                        diaGroup.style.display = 'block';
+                        break;
+                }
+            }
+            
+            // Inicializar y escuchar cambios
+            actualizarCampos();
+            tipoFiltro.addEventListener('change', actualizarCampos);
+            
+            // Establecer valores por defecto si están vacíos
+            const hoy = new Date().toISOString().split('T')[0];
+            const mesActual = new Date().toISOString().slice(0, 7);
+            
+            if (!document.getElementById('fechaInicio').value) {
+                document.getElementById('fechaInicio').value = hoy;
+            }
+            if (!document.getElementById('fechaFin').value) {
+                document.getElementById('fechaFin').value = hoy;
+            }
+            if (!document.getElementById('fechaMes').value) {
+                document.getElementById('fechaMes').value = mesActual;
+            }
+            if (!document.getElementById('fechaDia').value) {
+                document.getElementById('fechaDia').value = hoy;
+            }
+        });
+    </script>
+</body>
+</html>

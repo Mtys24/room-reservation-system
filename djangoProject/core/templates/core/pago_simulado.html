@@ -1,0 +1,357 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pago con Tarjeta - Cabañas Valle Central</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .card-input { transition: all 0.3s; }
+    .card-input:focus { border-color: #198754; box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25); }
+    .payment-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .security-badge { background: rgba(255,255,255,0.2); }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .input-error { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important; }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow-sm">
+          <!-- Header -->
+          <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-credit-card"></i> Pasarela de Pago Segura</h4>
+          </div>
+          
+          <div class="card-body">
+            <!-- Resumen de la reserva -->
+            <div class="alert alert-info">
+              <h6 class="alert-heading">Resumen de tu reserva:</h6>
+              <p class="mb-1"><strong>Cabaña:</strong> {{ reserva.cabana.nombre }}</p>
+              <p class="mb-1"><strong>Fechas:</strong> {{ reserva.fecha_inicio }} → {{ reserva.fecha_fin }}</p>
+              <p class="mb-0"><strong>Total a pagar:</strong> ${{ pago.monto }}</p>
+            </div>
+
+            <hr>
+
+            <!-- Formulario de pago simulado -->
+            <form method="post" id="paymentForm">
+              {% csrf_token %}
+              
+              <!-- Información de la tarjeta -->
+              <h6 class="text-success mb-3">Información de la Tarjeta</h6>
+              
+              <div class="row g-3">
+                <!-- Número de tarjeta -->
+                <div class="col-12">
+                  <label class="form-label">Número de tarjeta</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control card-input" placeholder="1234 5678 9012 3456" maxlength="19" 
+                           pattern="[0-9\s]{13,19}" required id="cardNumber">
+                    <span class="input-group-text"><i class="bi bi-credit-card-2-front"></i></span>
+                  </div>
+                  <div class="form-text">Ingresa los 16 dígitos de tu tarjeta (solo números)</div>
+                </div>
+
+                <!-- Nombre del titular -->
+                <div class="col-12">
+                  <label class="form-label">Nombre del titular</label>
+                  <input type="text" class="form-control card-input" placeholder="JUAN PEREZ" required id="cardName">
+                  <div class="form-text">Solo letras y espacios</div>
+                </div>
+
+                <!-- Fecha de vencimiento y CVV -->
+                <div class="col-md-6">
+                  <label class="form-label">Fecha de vencimiento</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control card-input" placeholder="MM" maxlength="2" required id="expMonth">
+                    <span class="input-group-text">/</span>
+                    <input type="text" class="form-control card-input" placeholder="AA" maxlength="2" required id="expYear">
+                  </div>
+                  <div class="form-text" id="expiryMessage"></div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">CVV</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control card-input" placeholder="123" maxlength="3" required id="cvv">
+                    <span class="input-group-text" data-bs-toggle="tooltip" title="Los 3 dígitos en el reverso de tu tarjeta">
+                      <i class="bi bi-question-circle"></i>
+                    </span>
+                  </div>
+                  <div class="form-text">3 dígitos (solo números)</div>
+                </div>
+
+                <!-- Detalle del pago -->
+                <div class="col-12">
+                  <div class="card payment-card">
+                    <div class="card-body">
+                      <h6 class="card-title">Detalle del pago</h6>
+                      <div class="d-flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>${{ pago.monto }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between">
+                        <span>Comisión (0%):</span>
+                        <span>$0</span>
+                      </div>
+                      <hr style="border-color: rgba(255,255,255,0.3);">
+                      <div class="d-flex justify-content-between fw-bold">
+                        <span>Total:</span>
+                        <span>${{ pago.monto }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Términos y condiciones -->
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" required id="termsCheck">
+                    <label class="form-check-label small" for="termsCheck">
+                      Acepto los <a href="#" class="text-success">términos y condiciones</a> y autorizo el cargo a mi tarjeta
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botones de acción -->
+              <div class="mt-4 d-flex gap-2">
+                <input type="hidden" name="action" value="pay" id="actionInput">
+                <button type="submit" class="btn btn-success flex-fill" id="payButton">
+                  <i class="bi bi-lock-fill"></i> Pagar ${{ pago.monto }}
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="cancelButton">
+                  <i class="bi bi-x-circle"></i> Cancelar Pago
+                </button>
+              </div>
+            </form>
+
+            <!-- Información de seguridad -->
+            <div class="mt-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 text-muted small">
+                <span class="security-badge px-2 py-1 rounded">
+                  <i class="bi bi-shield-check"></i> Pago 100% seguro
+                </span>
+                <span class="security-badge px-2 py-1 rounded">
+                  <i class="bi bi-encryption"></i> Datos encriptados
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Obtener año actual para validación
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // Enero = 1
+
+    // Formatear número de tarjeta - SOLO NÚMEROS
+    document.getElementById('cardNumber').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+      let formattedValue = value.match(/.{1,4}/g)?.join(' ');
+      e.target.value = formattedValue || value;
+      
+      // Validar en tiempo real
+      if (value.length === 16) {
+        this.classList.remove('input-error');
+      } else if (value.length > 0) {
+        this.classList.add('input-error');
+      } else {
+        this.classList.remove('input-error');
+      }
+    });
+
+    // Validar nombre - SOLO LETRAS Y ESPACIOS
+    document.getElementById('cardName').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+      e.target.value = value.toUpperCase();
+      
+      // Validar en tiempo real
+      if (value.length >= 2) {
+        this.classList.remove('input-error');
+      } else if (value.length > 0) {
+        this.classList.add('input-error');
+      } else {
+        this.classList.remove('input-error');
+      }
+    });
+
+    // Validar mes de expiración - SOLO NÚMEROS
+    document.getElementById('expMonth').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+      if (value > 12) value = 12;
+      if (value.length > 2) value = value.slice(0, 2);
+      e.target.value = value;
+      validateExpiryDate();
+      
+      // Validar en tiempo real
+      if (value.length === 2 && value >= 1 && value <= 12) {
+        this.classList.remove('input-error');
+      } else if (value.length > 0) {
+        this.classList.add('input-error');
+      } else {
+        this.classList.remove('input-error');
+      }
+    });
+
+    // Validar año de expiración - SOLO NÚMEROS
+    document.getElementById('expYear').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+      if (value.length > 2) value = value.slice(0, 2);
+      e.target.value = value;
+      validateExpiryDate();
+      
+      // Validar en tiempo real
+      if (value.length === 2) {
+        this.classList.remove('input-error');
+      } else if (value.length > 0) {
+        this.classList.add('input-error');
+      } else {
+        this.classList.remove('input-error');
+      }
+    });
+
+    // Validar CVV - SOLO NÚMEROS
+    document.getElementById('cvv').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+      if (value.length > 3) value = value.slice(0, 3);
+      e.target.value = value;
+      
+      // Validar en tiempo real
+      if (value.length === 3) {
+        this.classList.remove('input-error');
+      } else if (value.length > 0) {
+        this.classList.add('input-error');
+      } else {
+        this.classList.remove('input-error');
+      }
+    });
+
+    // Validar fecha de vencimiento
+    function validateExpiryDate() {
+      const month = parseInt(document.getElementById('expMonth').value) || 0;
+      const year = parseInt(document.getElementById('expYear').value) || 0;
+      const messageEl = document.getElementById('expiryMessage');
+      
+      if (month === 0 || year === 0) {
+        messageEl.textContent = '';
+        return true;
+      }
+      
+      // Convertir año de 2 dígitos a 4 dígitos (asumimos siglo 21)
+      const fullYear = year < 100 ? 2000 + year : year;
+      
+      if (fullYear < currentYear) {
+        messageEl.textContent = '❌ La tarjeta está vencida';
+        messageEl.style.color = '#dc3545';
+        return false;
+      } else if (fullYear === currentYear && month < currentMonth) {
+        messageEl.textContent = '❌ La tarjeta está vencida';
+        messageEl.style.color = '#dc3545';
+        return false;
+      } else {
+        messageEl.textContent = '✅ Fecha válida';
+        messageEl.style.color = '#198754';
+        return true;
+      }
+    }
+
+    // Botón de cancelar - funciona sin validaciones
+    document.getElementById('cancelButton').addEventListener('click', function() {
+      if (confirm('¿Estás seguro de que quieres cancelar el pago? La reserva será eliminada.')) {
+        // Crear un formulario temporal para cancelar
+        const tempForm = document.createElement('form');
+        tempForm.method = 'post';
+        tempForm.action = '';
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'cancel';
+        
+        tempForm.appendChild(csrfInput);
+        tempForm.appendChild(actionInput);
+        document.body.appendChild(tempForm);
+        tempForm.submit();
+      }
+    });
+
+    // Validación antes de enviar para pago exitoso
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const cardName = document.getElementById('cardName').value;
+      const expMonth = document.getElementById('expMonth').value;
+      const expYear = document.getElementById('expYear').value;
+      const cvv = document.getElementById('cvv').value;
+      const termsCheck = document.getElementById('termsCheck').checked;
+      
+      // Validaciones para pago
+      let isValid = true;
+      let errorMessage = '';
+      
+      if (cardNumber.length !== 16) {
+        isValid = false;
+        errorMessage = 'Por favor ingresa un número de tarjeta válido (16 dígitos)';
+      } else if (!cardName.trim() || cardName.length < 2) {
+        isValid = false;
+        errorMessage = 'Por favor ingresa el nombre del titular de la tarjeta (mínimo 2 letras)';
+      } else if (expMonth.length !== 2 || expYear.length !== 2) {
+        isValid = false;
+        errorMessage = 'Por favor ingresa una fecha de vencimiento válida';
+      } else if (!validateExpiryDate()) {
+        isValid = false;
+        errorMessage = 'La tarjeta está vencida. Por favor usa una tarjeta válida.';
+      } else if (cvv.length !== 3) {
+        isValid = false;
+        errorMessage = 'Por favor ingresa un CVV válido (3 dígitos)';
+      } else if (!termsCheck) {
+        isValid = false;
+        errorMessage = 'Debes aceptar los términos y condiciones para continuar';
+      }
+      
+      if (!isValid) {
+        alert(errorMessage);
+        return;
+      }
+      
+      // Simular procesamiento
+      const submitBtn = document.getElementById('payButton');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Procesando pago...';
+      submitBtn.disabled = true;
+      document.getElementById('cancelButton').disabled = true;
+      
+      // Simular delay de procesamiento
+      setTimeout(() => {
+        document.getElementById('actionInput').value = 'pay';
+        document.getElementById('paymentForm').submit();
+      }, 2000);
+    });
+
+    // Tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  </script>
+</body>
+</html>

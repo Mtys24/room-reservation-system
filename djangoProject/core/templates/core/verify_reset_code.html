@@ -1,0 +1,340 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verificar Código - Cabañas Valle Central</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <style>
+    .toast-container { z-index: 9999; }
+    .recovery-card {
+      max-width: 450px;
+      margin: 2rem auto;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      background: white;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .step-indicator:before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #dee2e6;
+      z-index: 1;
+    }
+    .step {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #dee2e6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #6c757d;
+      position: relative;
+      z-index: 2;
+    }
+    .step.completed {
+      background: #20c997;
+      color: white;
+    }
+    .step.active {
+      background: #198754;
+      color: white;
+    }
+    .code-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 2rem 0;
+    }
+    .code-input {
+      width: 50px;
+      height: 60px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    .code-input:focus {
+      border-color: #198754;
+      box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+      outline: none;
+    }
+    .timer {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 1rem;
+    }
+    .timer.expired {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+        <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150" height="150" class="me-2 rounded">
+        <span class="fw-bold text-light">Cabañas Valle Central</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="recovery-card shadow">
+    <!-- Indicador de pasos -->
+    <div class="step-indicator">
+      <div class="step completed">1</div>
+      <div class="step active">2</div>
+      <div class="step">3</div>
+    </div>
+    
+    <h2 class="mb-3 text-center text-success">
+      <i class="bi bi-shield-check me-2"></i>Verificar Código
+    </h2>
+    
+    <p class="text-muted text-center mb-4">
+      Ingresa el código de <strong>6 dígitos</strong> que enviamos a tu correo.
+      <br><small>El código es válido por 15 minutos</small>
+    </p>
+    
+    <form method="POST" id="verifyForm">
+      {% csrf_token %}
+      
+      <div class="code-inputs" id="codeContainer">
+        {% for i in "123456" %}
+        <input type="text" 
+               class="code-input" 
+               maxlength="1" 
+               data-index="{{ forloop.counter0 }}"
+               oninput="moveToNext(this, event)"
+               onkeydown="handleBackspace(event, {{ forloop.counter0 }})"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*">
+        {% endfor %}
+      </div>
+      
+      <input type="hidden" id="codeInput" name="code" required>
+      
+      <div class="timer text-center" id="timer">
+        ⏳ Código válido por: <span id="timeLeft">15:00</span>
+      </div>
+      
+      <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-green" id="verifyBtn">
+          <i class="bi bi-check-circle me-2"></i>Verificar Código
+        </button>
+        <a href="{% url 'forgot-password' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-repeat me-2"></i>Reenviar Código
+        </a>
+        <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Volver al Login
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sistema de toasts -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi 
+                {% if message.tags == 'success' %}bi-check-circle-fill
+                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-exclamation-circle-fill
+                {% elif message.tags == 'warning' %}bi-exclamation-triangle-fill
+                {% else %}bi-info-circle-fill{% endif %} me-2"></i>
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                    data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mostrar toasts
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      toastElList.forEach(function(toastEl) {
+        new bootstrap.Toast(toastEl).show();
+      });
+      
+      // Temporizador de 15 minutos
+      let timeLeft = 15 * 60; // 15 minutos en segundos
+      const timerElement = document.getElementById('timeLeft');
+      
+      function updateTimer() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerElement.textContent = '00:00';
+          document.getElementById('timer').classList.add('expired');
+          document.getElementById('verifyBtn').disabled = true;
+          document.getElementById('verifyBtn').innerHTML = '<i class="bi bi-x-circle me-2"></i>Código Expirado';
+        }
+        timeLeft--;
+      }
+      
+      const timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+      
+      // Enfoque en el primer input al cargar
+      const firstInput = document.querySelector('.code-input[data-index="0"]');
+      if (firstInput) firstInput.focus();
+    });
+    
+    function moveToNext(input, event) {
+      const index = parseInt(input.getAttribute('data-index'));
+      const value = input.value;
+      
+      // Solo permitir números
+      if (/^[0-9]$/.test(value)) {
+        input.value = value;
+        
+        // Mover al siguiente input automáticamente
+        if (index < 5) {
+          const nextInput = document.querySelector(`.code-input[data-index="${index + 1}"]`);
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+          }
+        }
+        
+        updateHiddenInput();
+      } else {
+        // Si no es un número, limpiar el input
+        input.value = '';
+      }
+      
+      // Prevenir entrada no numérica
+      if (event.data && !/^[0-9]$/.test(event.data)) {
+        input.value = '';
+        event.preventDefault();
+      }
+    }
+    
+    function handleBackspace(event, index) {
+      if (event.key === 'Backspace' && !event.target.value && index > 0) {
+        const prevInput = document.querySelector(`.code-input[data-index="${index - 1}"]`);
+        if (prevInput) {
+          prevInput.focus();
+          prevInput.value = '';
+          updateHiddenInput();
+        }
+      }
+    }
+    
+    function updateHiddenInput() {
+      const inputs = document.querySelectorAll('.code-input');
+      let code = '';
+      inputs.forEach(input => {
+        code += input.value || '';
+      });
+      document.getElementById('codeInput').value = code;
+      
+      // Si el código está completo (6 dígitos), enviar automáticamente después de 500ms
+      if (code.length === 6) {
+        setTimeout(() => {
+          document.getElementById('verifyForm').submit();
+        }, 500);
+      }
+    }
+    
+    // Permitir pegar código completo
+    document.addEventListener('paste', function(e) {
+      const activeElement = document.activeElement;
+      if (activeElement.classList.contains('code-input')) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        
+        if (/^\d{6}$/.test(pastedText)) {
+          const inputs = document.querySelectorAll('.code-input');
+          inputs.forEach((input, index) => {
+            if (index < 6) {
+              input.value = pastedText[index] || '';
+            }
+          });
+          updateHiddenInput();
+          
+          // Enviar automáticamente después de pegar
+          setTimeout(() => {
+            document.getElementById('verifyForm').submit();
+          }, 300);
+        }
+      }
+    });
+    
+    // Validar antes de enviar
+    document.getElementById('verifyForm').addEventListener('submit', function(e) {
+      const code = document.getElementById('codeInput').value;
+      
+      if (code.length !== 6) {
+        e.preventDefault();
+        showDynamicToast('❌ Error', 'El código debe tener exactamente 6 dígitos.', 'danger');
+        return;
+      }
+      
+      // Deshabilitar botón para evitar múltiples envíos
+      document.getElementById('verifyBtn').disabled = true;
+      document.getElementById('verifyBtn').innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Verificando...';
+    });
+    
+    function showDynamicToast(title, message, type) {
+      const toastContainer = document.querySelector('.toast-container');
+      const toastId = 'toast-' + Date.now();
+      
+      const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 
+                           type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                           type === 'warning' ? 'bi-exclamation-triangle-fill' : 
+                           'bi-info-circle-fill'} me-2"></i>
+              <strong>${title}</strong><br>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      const toastElement = document.getElementById(toastId);
+      const toast = new bootstrap.Toast(toastElement);
+      toast.show();
+      
+      setTimeout(() => {
+        toast.hide();
+        toastElement.remove();
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

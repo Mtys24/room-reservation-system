@@ -1,0 +1,1121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administrar Reservas - Cabañas Valle Central</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'core/styles.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .month-box { border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem; }
+    .month-title { text-align: center; font-weight: 600; margin-bottom: 0.5rem; color: #198754; }
+    .day-cell { 
+        cursor: pointer; 
+        transition: all 0.2s; 
+        padding: 0.4rem;
+        border-radius: 0.25rem;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+    .day-cell:hover { transform: scale(1.05); }
+    .day-available { background-color: #198754; color: white; }
+    .day-available:hover { background-color: #157347 !important; }
+    .day-occupied { background-color: #dc3545; color: white; cursor: not-allowed; }
+    .day-past { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; }
+    .day-header { font-weight: 700; color: #495057; }
+    .day-cell.selected { 
+        outline: 2px solid #0d6efd; 
+        box-shadow: 0 0 0 3px rgba(13,110,253,0.25); 
+    }
+    .month-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+    .calendar-container {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+    .filter-section {
+        background-color: #f8f9fa;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: end;
+    }
+    .pagination-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+</head>
+<body>
+
+  <!-- NAVBAR ADMIN ESTANDARIZADO -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'admin-index' %}">
+            <span class="fs-4">
+                <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150px" height="150px">
+            </span>
+            <span class="ms-2">Cabañas Valle Central - Admin</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Dropdown de Administración -->
+            <div class="dropdown me-2">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear me-1"></i> Administración
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-index' %}">
+                            <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                            <i class="bi bi-house-door me-2"></i> Gestionar Cabañas
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                            <i class="bi bi-calendar-check me-2"></i> Gestionar Reservas
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                            <i class="bi bi-people me-2"></i> Gestionar Usuarios
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                            <i class="bi bi-graph-up me-2"></i> Reportes
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item" href="{% url 'admin-historial' %}"><i class="bi bi-clock-history me-2"></i> Historial</a>
+                </ul>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-light">Volver al sitio</a>
+        </div>
+    </div>
+  </nav>
+  
+    <div class="container mt-5">
+    <!-- Botón para crear nueva reserva -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success mb-0">
+        <i class="bi bi-calendar-check"></i> Gestión de Reservas
+        </h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearReserva">
+        <i class="bi bi-plus-lg"></i> Crear Reserva
+        </button>
+    </div>
+
+    <!-- Filtros para la tabla de reservas -->
+    <div class="filter-section">
+        <h6 class="text-success mb-3"><i class="bi bi-funnel"></i> Filtros</h6>
+        <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Buscar por Cliente</label>
+            <input type="text" class="form-control" id="filterCliente" placeholder="Nombre o email del cliente...">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Buscar por Cabaña</label>
+            <input type="text" class="form-control" id="filterCabana" placeholder="Nombre de cabaña...">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Estado</label>
+            <select class="form-select" id="filterEstado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="cancelada">Cancelada</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" class="form-control" id="filterFechaDesde">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Fecha Hasta</label>
+            <input type="date" class="form-control" id="filterFechaHasta">
+        </div>
+        <div class="col-md-2 filter-actions">
+            <button type="button" class="btn btn-outline-secondary w-100" id="btnLimpiarFiltros">
+            <i class="bi bi-arrow-clockwise"></i> Limpiar
+            </button>
+        </div>
+        </div>
+        <div class="row mt-2">
+        <div class="col-12">
+            <small class="text-muted">
+            <span id="contadorResultados">{{ reservas.paginator.count }}</span> reservas encontradas
+            <span class="ms-3">Mostrando página {{ reservas.number }} de {{ reservas.paginator.num_pages }}</span>
+            </small>
+        </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear reserva -->
+    <div class="modal fade" id="modalCrearReserva" tabindex="-1" aria-labelledby="modalCrearReservaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="modalCrearReservaLabel">Crear Nueva Reserva</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCrearReserva">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="row g-3">
+                <!-- Búsqueda de Usuario con Autocompletado -->
+                <div class="col-md-6">
+                    <label class="form-label">Usuario *</label>
+                    <div class="user-search-container">
+                    <input type="text" class="form-control" id="searchUsuario" placeholder="Escribe nombre o email del usuario..." autocomplete="off">
+                    <div class="user-search-results" id="userSearchResults"></div>
+                    </div>
+                    <div class="user-selected" id="userSelected">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span id="selectedUserName"></span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearUserSelection()">
+                        <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    </div>
+                    <input type="hidden" name="usuario_id" id="usuarioId" required>
+                    <div class="form-text">Comienza a escribir para buscar usuarios. Selecciona uno de los resultados.</div>
+                </div>
+                
+                <!-- Selección de Cabaña -->
+                <div class="col-md-6">
+                    <label class="form-label">Cabaña *</label>
+                    <select class="form-select" name="cabana_id" id="selectCabana" required>
+                    <option value="">Seleccionar cabaña...</option>
+                    {% for cabana in cabanas %}
+                    <option value="{{ cabana.id }}" data-precio="{{ cabana.precio_noche }}">
+                        {{ cabana.nombre }} - ${{ cabana.precio_noche|floatformat:0 }}
+                    </option>
+                    {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Calendario de Disponibilidad -->
+                <div class="col-12">
+                    <label class="form-label">Seleccionar Fechas *</label>
+                    <div class="calendar-container">
+                    <div id="calendarioAdmin">
+                        <p class="text-muted text-center">Selecciona una cabaña para ver el calendario de disponibilidad</p>
+                    </div>
+                    </div>
+                    <div class="form-text">
+                    <span class="badge bg-success">Verde</span> = Disponible &nbsp;
+                    <span class="badge bg-danger">Rojo</span> = Ocupado &nbsp;
+                    <span class="badge bg-secondary">Gris</span> = Pasado
+                    </div>
+                </div>
+
+                <!-- Fechas seleccionadas -->
+                <div class="col-md-6">
+                    <label class="form-label">Fecha de Inicio *</label>
+                    <input type="date" class="form-control" name="fecha_inicio" id="fechaInicioAdmin" required readonly>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Fecha de Fin *</label>
+                    <input type="date" class="form-control" name="fecha_fin" id="fechaFinAdmin" required readonly>
+                </div>
+
+                <!-- Estado y Precios -->
+                <div class="col-md-6">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" name="estado">
+                    <option value="confirmada">Confirmada</option>
+                    <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Precio por Día</label>
+                    <input type="text" class="form-control" id="precioDiaAdmin" readonly>
+                </div>
+
+                <!-- Total -->
+                <div class="col-12">
+                    <label class="form-label">Total Estimado</label>
+                    <input type="text" class="form-control fw-bold text-success" id="totalAdmin" readonly>
+                </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">Crear Reserva</button>
+            </div>
+            </form>
+        </div>
+        </div>
+    </div>
+
+    <!-- Lista de Reservas Existentes -->
+    {% if reservas %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle shadow-sm" id="tablaReservas">
+        <thead class="table-success text-center">
+            <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Cabaña</th>
+            <th>Fechas</th>
+            <th>Precio Día</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody class="text-center">
+            {% for r in reservas %}
+            <tr class="reserva-row" 
+                data-cliente="{{ r.usuario.nombre|lower }} {{ r.usuario.email|lower }}" 
+                data-cabana="{{ r.cabana.nombre|lower }}" 
+                data-estado="{{ r.estado }}"
+                data-fecha-inicio="{{ r.fecha_inicio|date:'Y-m-d' }}"
+                data-fecha-fin="{{ r.fecha_fin|date:'Y-m-d' }}">
+            <td>{{ r.id }}</td>
+            <td>{{ r.usuario.nombre }}</td>
+            <td>{{ r.cabana.nombre }}</td>
+            <td>
+                <small>{{ r.fecha_inicio }} → {{ r.fecha_fin }}</small>
+            </td>
+            <td>${{ r.precio_dia|floatformat:0 }}</td>
+            <td>${{ r.total|floatformat:0 }}</td>
+            <td>
+                {% if r.estado == 'pendiente' %}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+                {% elif r.estado == 'confirmada' %}
+                <span class="badge bg-success">Confirmada</span>
+                {% elif r.estado == 'cancelada' %}
+                <span class="badge bg-danger">Cancelada</span>
+                {% else %}
+                <span class="badge bg-secondary">{{ r.estado }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if r.estado != 'confirmada' %}
+                <button class="btn btn-outline-success btn-sm me-1 mb-1"
+                    onclick="actualizarEstado({{ r.id }}, 'confirmada')">
+                    <i class="bi bi-check-circle"></i> Confirmar
+                </button>
+                {% endif %}
+                {% if r.estado != 'cancelada' %}
+                <button class="btn btn-outline-danger btn-sm me-1 mb-1"
+                    onclick="actualizarEstado({{ r.id }}, 'cancelada')">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                {% endif %}
+                {% if r.estado != 'pendiente' %}
+                <button class="btn btn-outline-warning btn-sm mb-1"
+                    onclick="actualizarEstado({{ r.id }}, 'pendiente')">
+                    <i class="bi bi-arrow-counterclockwise"></i> Pendiente
+                </button>
+                {% endif %}
+            </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+        
+        <!-- Paginación -->
+        {% if reservas.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if reservas.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ reservas.previous_page_number }}">Anterior</a>
+                </li>
+                {% endif %}
+                
+                {% for i in reservas.paginator.page_range %}
+                    {% if reservas.number == i %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if reservas.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ reservas.next_page_number }}">Siguiente</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        No hay reservas registradas por el momento.
+    </div>
+    {% endif %}
+    </div>
+
+    <!-- Formulario oculto para cambiar estado -->
+    <form id="formEstado" method="POST" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="reserva_id" id="reserva_id">
+    <input type="hidden" name="estado" id="estado">
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    // Variables globales
+    let reservasCabana = [];
+    let precioPorNoche = 0;
+    let offsetMonths = 0;
+    let monthsToShow = 3;
+    let allUsers = [];
+
+    // Cargar usuarios al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simular carga de usuarios (en un caso real, esto vendría de una API)
+        allUsers = [
+            {% for usuario in usuarios %}
+            {
+                id: '{{ usuario.id }}',
+                nombre: '{{ usuario.nombre }}',
+                email: '{{ usuario.email }}',
+                telefono: '{{ usuario.telefono|default:"" }}'
+            },
+            {% endfor %}
+        ];
+        
+        // Inicializar filtros
+        initFilters();
+        
+        // Establecer fecha mínima para los filtros de fecha (hoy)
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('filterFechaDesde').min = hoy;
+        document.getElementById('filterFechaHasta').min = hoy;
+    });
+
+    // Sistema de búsqueda de usuarios
+    function initUserSearch() {
+        const searchInput = document.getElementById('searchUsuario');
+        const resultsContainer = document.getElementById('userSearchResults');
+        const userSelected = document.getElementById('userSelected');
+        const selectedUserName = document.getElementById('selectedUserName');
+        const usuarioId = document.getElementById('usuarioId');
+
+        let selectedUser = null;
+        let currentFocus = -1;
+
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            resultsContainer.innerHTML = '';
+            currentFocus = -1;
+
+            if (query.length < 2) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+
+            const filteredUsers = allUsers.filter(user => 
+                user.nombre.toLowerCase().includes(query) || 
+                user.email.toLowerCase().includes(query) ||
+                (user.telefono && user.telefono.includes(query))
+            );
+
+            if (filteredUsers.length === 0) {
+                resultsContainer.innerHTML = '<div class="user-search-result text-muted">No se encontraron usuarios</div>';
+            } else {
+                filteredUsers.forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'user-search-result';
+                    div.innerHTML = `
+                        <strong>${user.nombre}</strong><br>
+                        <small class="text-muted">${user.email}</small>
+                        ${user.telefono ? `<br><small class="text-muted">${user.telefono}</small>` : ''}
+                    `;
+                    div.addEventListener('click', function() {
+                        selectUser(user);
+                    });
+                    resultsContainer.appendChild(div);
+                });
+            }
+
+            resultsContainer.style.display = 'block';
+        });
+
+        searchInput.addEventListener('keydown', function(e) {
+            const results = resultsContainer.getElementsByClassName('user-search-result');
+            
+            if (e.key === 'ArrowDown') {
+                currentFocus++;
+                addActive(results);
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                currentFocus--;
+                addActive(results);
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentFocus > -1 && results[currentFocus]) {
+                    results[currentFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                resultsContainer.style.display = 'none';
+            }
+        });
+
+        function addActive(results) {
+            if (!results) return false;
+            removeActive(results);
+            if (currentFocus >= results.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (results.length - 1);
+            results[currentFocus].classList.add('active');
+        }
+
+        function removeActive(results) {
+            for (let i = 0; i < results.length; i++) {
+                results[i].classList.remove('active');
+            }
+        }
+
+        function selectUser(user) {
+            selectedUser = user;
+            searchInput.value = '';
+            selectedUserName.textContent = `${user.nombre} (${user.email})`;
+            usuarioId.value = user.id;
+            userSelected.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            searchInput.blur();
+        }
+
+        window.clearUserSelection = function() {
+            selectedUser = null;
+            usuarioId.value = '';
+            userSelected.style.display = 'none';
+            searchInput.value = '';
+            searchInput.focus();
+        };
+
+        // Cerrar resultados al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+                resultsContainer.style.display = 'none';
+            }
+        });
+    }
+
+    // Sistema de filtrado para la tabla
+    function initFilters() {
+        const filterCliente = document.getElementById('filterCliente');
+        const filterCabana = document.getElementById('filterCabana');
+        const filterEstado = document.getElementById('filterEstado');
+        const filterFechaDesde = document.getElementById('filterFechaDesde');
+        const filterFechaHasta = document.getElementById('filterFechaHasta');
+        const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+
+        function applyFilters() {
+            const clienteFilter = filterCliente.value.toLowerCase();
+            const cabanaFilter = filterCabana.value.toLowerCase();
+            const estadoFilter = filterEstado.value;
+            const fechaDesdeFilter = filterFechaDesde.value;
+            const fechaHastaFilter = filterFechaHasta.value;
+
+            let visibleCount = 0;
+
+            document.querySelectorAll('.reserva-row').forEach(row => {
+                const cliente = row.getAttribute('data-cliente');
+                const cabana = row.getAttribute('data-cabana');
+                const estado = row.getAttribute('data-estado');
+                const fechaInicio = row.getAttribute('data-fecha-inicio');
+                const fechaFin = row.getAttribute('data-fecha-fin');
+
+                const clienteMatch = cliente.includes(clienteFilter);
+                const cabanaMatch = cabana.includes(cabanaFilter);
+                const estadoMatch = !estadoFilter || estado === estadoFilter;
+                
+                // Filtro por fecha: mostrar reservas que se solapen con el rango seleccionado
+                let fechaMatch = true;
+                if (fechaDesdeFilter && fechaHastaFilter) {
+                    // Mostrar reservas que se solapen con el rango seleccionado
+                    fechaMatch = (fechaInicio <= fechaHastaFilter && fechaFin >= fechaDesdeFilter);
+                } else if (fechaDesdeFilter) {
+                    // Mostrar reservas que terminen después de la fecha desde
+                    fechaMatch = (fechaFin >= fechaDesdeFilter);
+                } else if (fechaHastaFilter) {
+                    // Mostrar reservas que empiecen antes de la fecha hasta
+                    fechaMatch = (fechaInicio <= fechaHastaFilter);
+                }
+
+                const shouldShow = clienteMatch && cabanaMatch && estadoMatch && fechaMatch;
+                row.style.display = shouldShow ? '' : 'none';
+                
+                if (shouldShow) visibleCount++;
+            });
+
+            // Actualizar contador
+            document.getElementById('contadorResultados').textContent = visibleCount;
+            
+            // Mostrar mensaje si no hay resultados
+            const tabla = document.querySelector('#tablaReservas');
+            let mensajeNoResultados = document.getElementById('mensajeNoResultados');
+            
+            if (visibleCount === 0 && (clienteFilter || cabanaFilter || estadoFilter || fechaDesdeFilter || fechaHastaFilter)) {
+                if (!mensajeNoResultados) {
+                    mensajeNoResultados = document.createElement('div');
+                    mensajeNoResultados.id = 'mensajeNoResultados';
+                    mensajeNoResultados.className = 'alert alert-warning text-center mt-3';
+                    mensajeNoResultados.innerHTML = `
+                        <i class="bi bi-search"></i> No se encontraron reservas con los filtros aplicados en esta página.
+                        <br><small>Intenta con otros criterios de búsqueda o navega a otra página.</small>
+                    `;
+                    tabla.parentNode.insertBefore(mensajeNoResultados, tabla.nextSibling);
+                }
+            } else if (mensajeNoResultados) {
+                mensajeNoResultados.remove();
+            }
+        }
+
+        // Event listeners para todos los filtros
+        filterCliente.addEventListener('input', applyFilters);
+        filterCabana.addEventListener('input', applyFilters);
+        filterEstado.addEventListener('change', applyFilters);
+        filterFechaDesde.addEventListener('change', applyFilters);
+        filterFechaHasta.addEventListener('change', applyFilters);
+
+        // Botón limpiar filtros
+        btnLimpiarFiltros.addEventListener('click', function() {
+            filterCliente.value = '';
+            filterCabana.value = '';
+            filterEstado.value = '';
+            filterFechaDesde.value = '';
+            filterFechaHasta.value = '';
+            applyFilters();
+        });
+
+        // Validación de fechas: fecha hasta no puede ser menor que fecha desde
+        filterFechaDesde.addEventListener('change', function() {
+            if (filterFechaHasta.value && filterFechaDesde.value > filterFechaHasta.value) {
+                filterFechaHasta.value = filterFechaDesde.value;
+            }
+            filterFechaHasta.min = filterFechaDesde.value;
+        });
+
+        filterFechaHasta.addEventListener('change', function() {
+            if (filterFechaDesde.value && filterFechaHasta.value < filterFechaDesde.value) {
+                filterFechaDesde.value = filterFechaHasta.value;
+            }
+        });
+
+        // Aplicar filtros al cargar la página
+        applyFilters();
+    }
+
+    // Inicializar búsqueda de usuarios cuando el modal se abre
+    document.getElementById('modalCrearReserva').addEventListener('show.bs.modal', function() {
+        // Limpiar campos
+        document.getElementById('selectCabana').value = '';
+        document.getElementById('searchUsuario').value = '';
+        document.getElementById('usuarioId').value = '';
+        document.getElementById('userSelected').style.display = 'none';
+        document.getElementById('fechaInicioAdmin').value = '';
+        document.getElementById('fechaFinAdmin').value = '';
+        document.getElementById('precioDiaAdmin').value = '';
+        document.getElementById('totalAdmin').value = '';
+        document.getElementById('calendarioAdmin').innerHTML = '<p class="text-muted text-center">Selecciona una cabaña para ver el calendario de disponibilidad</p>';
+        reservasCabana = [];
+        offsetMonths = 0;
+        
+        // Inicializar búsqueda de usuarios
+        initUserSearch();
+    });
+
+    // FUNCIONES BASE (igual que en carrito)
+    function parseISO(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.split('-').map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function addDays(date, days) {
+        const d = new Date(date);
+        d.setDate(d.getDate() + days);
+        return d;
+    }
+
+    function isoDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function monthName(year, monthIndex) {
+        return new Date(year, monthIndex, 1).toLocaleString('es-CL', { month: 'long', year: 'numeric' });
+    }
+
+    // Preparamos rangos ocupados normalizados (igual que en carrito)
+    function getOccupiedRanges() {
+        return reservasCabana.map(r => {
+            const ini = parseISO(r.inicio);
+            const fin = parseISO(r.fin);
+            if (ini && fin) { 
+                ini.setHours(0,0,0,0); 
+                fin.setHours(23,59,59,999); 
+                return { ini, fin }; 
+            }
+            return null;
+        }).filter(Boolean);
+    }
+
+    // FUNCIÓN MEJORADA: Verificar si un rango solapa reservas existentes
+    function rangeOverlapsOccupied(startDate, endDate) {
+        const occupiedRanges = getOccupiedRanges();
+        for (const r of occupiedRanges) {
+            if (startDate <= r.fin && endDate >= r.ini) return true;
+        }
+        return false;
+    }
+
+    // Generar calendario similar al del carrito
+    function generarCalendarioAdmin() {
+        const calendarioEl = document.getElementById('calendarioAdmin');
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        const occupiedRanges = getOccupiedRanges();
+        
+        let html = `<div class="mb-3">
+            <h6 class="text-success">Calendario de Disponibilidad - ${document.getElementById('selectCabana').options[document.getElementById('selectCabana').selectedIndex].text.split(' - ')[0]}</h6>
+            <small class="text-muted">Haz clic en los días disponibles para seleccionar fechas</small>
+            
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="navegarMeses(-1)">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+                <span class="fw-bold">${monthName(today.getFullYear(), today.getMonth() + offsetMonths)}</span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="navegarMeses(1)">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>`;
+        
+        // grid of months
+        html += `<div class="months-grid mt-3" style="display:grid; grid-template-columns: repeat(${Math.min(monthsToShow, 3)}, 1fr); gap:12px;">`;
+
+        for (let mi = 0; mi < monthsToShow; mi++) {
+            const mDate = new Date(today.getFullYear(), today.getMonth() + offsetMonths + mi, 1);
+            const year = mDate.getFullYear();
+            const month = mDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const firstDayWeek = (firstDay.getDay() + 6) % 7; // lunes=0
+
+            html += `<div class="month-box">`;
+            html += `<div class="month-title">${monthName(year, month)}</div>`;
+            const diasSemana = ['L','M','X','J','V','S','D'];
+            html += `<div class="d-grid month-days" style="grid-template-columns: repeat(7, 1fr); gap:4px;">`;
+            diasSemana.forEach(d => { html += `<div class="day-header small text-center">${d}</div>`; });
+            for (let i = 0; i < firstDayWeek; i++) html += '<div></div>';
+
+            for (let dia = 1; dia <= lastDay.getDate(); dia++) {
+                const fecha = new Date(year, month, dia);
+                const fechaStart = new Date(year, month, dia); fechaStart.setHours(0,0,0,0);
+                const fechaMid = new Date(year, month, dia); fechaMid.setHours(12,0,0,0);
+                
+                let clase = 'day-cell';
+                if (fechaStart < todayStart) {
+                    clase += ' day-past';
+                } else {
+                    const ocupado = occupiedRanges.some(range => fechaMid >= range.ini && fechaMid <= range.fin);
+                    clase += ocupado ? ' day-occupied' : ' day-available';
+                }
+                html += `<div class="${clase}" data-date="${isoDate(fecha)}">${dia}</div>`;
+            }
+
+            html += `</div></div>`;
+        }
+
+        html += `</div>`;
+        calendarioEl.innerHTML = html;
+
+        // attach click listeners for available days
+        calendarioEl.querySelectorAll('.day-cell.day-available').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const dateStr = this.getAttribute('data-date');
+                onCalendarDayClick(dateStr, this);
+            });
+        });
+
+        // update highlight based on inputs
+        highlightSelectedRange();
+    }
+
+    // Navegación entre meses
+    function navegarMeses(direction) {
+        offsetMonths += direction;
+        generarCalendarioAdmin();
+    }
+
+    // FUNCIÓN MEJORADA: Resaltar rango seleccionado
+    function highlightSelectedRange() {
+        const calendarioEl = document.getElementById('calendarioAdmin');
+        if (!calendarioEl) return;
+        
+        calendarioEl.querySelectorAll('.day-cell.selected').forEach(el => el.classList.remove('selected'));
+        const inicioVal = document.getElementById('fechaInicioAdmin').value;
+        const finVal = document.getElementById('fechaFinAdmin').value;
+        if (!inicioVal) return;
+        
+        const inicio = parseISO(inicioVal);
+        const fin = finVal ? parseISO(finVal) : null;
+        
+        calendarioEl.querySelectorAll('.day-cell').forEach(cell => {
+            const d = parseISO(cell.getAttribute('data-date'));
+            if (!d) return;
+            if (fin) {
+                if (d >= inicio && d <= fin) cell.classList.add('selected');
+            } else {
+                if (d.getTime() === inicio.getTime()) cell.classList.add('selected');
+            }
+        });
+    }
+
+    // FUNCIÓN MEJORADA: Manejar click en día (igual que en carrito)
+    function onCalendarDayClick(dateStr, cellEl) {
+        const inicioInput = document.getElementById('fechaInicioAdmin');
+        const finInput = document.getElementById('fechaFinAdmin');
+        const inicioVal = inicioInput.value;
+        const finVal = finInput.value;
+
+        if (!inicioVal) {
+            // Primera selección
+            inicioInput.value = dateStr;
+        } else if (!finVal) {
+            // Segunda selección (fecha fin)
+            const start = parseISO(inicioVal);
+            const clicked = parseISO(dateStr);
+            
+            if (clicked <= start) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fecha inválida',
+                    text: 'La fecha de salida debe ser posterior a la de entrada.',
+                    confirmButtonColor: '#198754'
+                }).then(() => {
+                    // LIMPIAR selección como en carrito
+                    inicioInput.value = '';
+                    finInput.value = '';
+                    highlightSelectedRange();
+                    calcularTotalAdmin();
+                });
+                return;
+            }
+            
+            if (rangeOverlapsOccupied(start, clicked)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Fechas no disponibles',
+                    text: 'El rango seleccionado solapa una reserva existente.',
+                    confirmButtonColor: '#198754'
+                }).then(() => {
+                    // LIMPIAR selección como en carrito
+                    inicioInput.value = '';
+                    finInput.value = '';
+                    highlightSelectedRange();
+                    calcularTotalAdmin();
+                });
+                return;
+            }
+            
+            finInput.value = dateStr;
+        } else {
+            // reset start if both already set (igual que en carrito)
+            inicioInput.value = dateStr;
+            finInput.value = '';
+        }
+
+        calcularTotalAdmin();
+        highlightSelectedRange();
+    }
+
+    // Calcular total
+    function calcularTotalAdmin() {
+        const inicio = document.getElementById('fechaInicioAdmin').value;
+        const fin = document.getElementById('fechaFinAdmin').value;
+        
+        if (!inicio || !fin) { 
+            document.getElementById('totalAdmin').value = ''; 
+            return; 
+        }
+        
+        const inicioDate = parseISO(inicio); 
+        const finDate = parseISO(fin);
+        
+        if (!inicioDate || !finDate || finDate <= inicioDate) { 
+            document.getElementById('totalAdmin').value = ''; 
+            return; 
+        }
+        
+        if (rangeOverlapsOccupied(inicioDate, finDate)) {
+            document.getElementById('totalAdmin').value = 'Fechas no disponibles'; 
+            return;
+        }
+        
+        const diffMs = finDate - inicioDate;
+        const dias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        const total = dias * precioPorNoche;
+        
+        document.getElementById('totalAdmin').value = '$' + total.toLocaleString('es-CL', {
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0
+        });
+    }
+
+    // Cuando se selecciona una cabaña
+    document.getElementById('selectCabana').addEventListener('change', function() {
+        const cabanaId = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (cabanaId) {
+            precioPorNoche = parseFloat(selectedOption.getAttribute('data-precio'));
+            document.getElementById('precioDiaAdmin').value = '$' + precioPorNoche.toLocaleString('es-CL');
+            
+            // Mostrar loading
+            document.getElementById('calendarioAdmin').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Cargando...</span></div><p class="mt-2">Cargando disponibilidad...</p></div>';
+            
+            // Cargar reservas de la cabaña
+            fetch(`/panel/reservas/cabana/${cabanaId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        reservasCabana = data.reservas;
+                        generarCalendarioAdmin();
+                    } else {
+                        document.getElementById('calendarioAdmin').innerHTML = '<p class="text-danger text-center">Error al cargar la disponibilidad</p>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('calendarioAdmin').innerHTML = '<p class="text-danger text-center">Error al cargar la disponibilidad</p>';
+                });
+        } else {
+            document.getElementById('calendarioAdmin').innerHTML = '<p class="text-muted text-center">Selecciona una cabaña para ver el calendario de disponibilidad</p>';
+        }
+    });
+
+    // FUNCIÓN CORREGIDA: Enviar formulario de creación de reserva
+    document.getElementById('formCrearReserva').addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('Formulario interceptado - iniciando validación...');
+        
+        const inicioInput = document.getElementById('fechaInicioAdmin');
+        const finInput = document.getElementById('fechaFinAdmin');
+        const usuarioId = document.getElementById('usuarioId');
+        const cabanaSelect = document.getElementById('selectCabana');
+        
+        const f1Val = inicioInput.value;
+        const f2Val = finInput.value;
+        const usuarioVal = usuarioId.value;
+        const cabanaVal = cabanaSelect.value;
+        
+        // Validaciones básicas
+        if (!usuarioVal || !cabanaVal) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos incompletos',
+                text: 'Debes seleccionar un usuario y una cabaña.',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+        
+        if (!f1Val || !f2Val) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fechas incompletas',
+                text: 'Selecciona fecha de entrada y salida.',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+        
+        const f1 = parseISO(f1Val);
+        const f2 = parseISO(f2Val);
+        
+        if (!f1 || !f2 || f2 <= f1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fechas inválidas',
+                text: 'La fecha de salida debe ser posterior a la de entrada.',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+        
+        if (rangeOverlapsOccupied(f1, f2)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Fechas no disponibles',
+                text: 'La cabaña está ocupada en el rango seleccionado.',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+
+        // Mostrar confirmación
+        Swal.fire({
+            title: 'Confirmar Reserva',
+            html: `
+                <div class="text-start">
+                    <p>¿Estás seguro de crear esta reserva?</p>
+                    <div class="mt-3">
+                        <strong>Detalles de la reserva:</strong>
+                        <ul class="mt-2">
+                            <li>Usuario: ${document.getElementById('selectedUserName').textContent}</li>
+                            <li>Cabaña: ${document.getElementById('selectCabana').options[document.getElementById('selectCabana').selectedIndex].text.split(' - ')[0]}</li>
+                            <li>Fechas: ${f1Val} a ${f2Val}</li>
+                            <li>Total: ${document.getElementById('totalAdmin').value}</li>
+                            <li>Estado: ${document.querySelector('select[name="estado"]').value}</li>
+                        </ul>
+                    </div>
+                    <p class="text-muted small mt-2"><i class="bi bi-envelope-check me-1"></i>Se enviará un email de confirmación al usuario.</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, crear reserva',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754'
+        }).then(result => {
+            if (result.isConfirmed) {
+                console.log('Usuario confirmó - enviando datos al servidor...');
+                // Enviar datos al servidor
+                enviarReservaAlServidor();
+            }
+        });
+    });
+
+    // FUNCIÓN NUEVA: Enviar datos al servidor
+    function enviarReservaAlServidor() {
+        const formData = new FormData(document.getElementById('formCrearReserva'));
+        
+        // Mostrar loading
+        Swal.fire({
+            title: 'Creando reserva...',
+            text: 'Por favor espera',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // URL corregida - usa la ruta correcta de Django
+        const url = "{% url 'admin-reservas-crear' %}";
+        console.log('Enviando a URL:', url);
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            console.log('Respuesta recibida, status:', response.status);
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos recibidos:', data);
+            Swal.close();
+            
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reserva Creada Exitosamente',
+                    html: `
+                        <div class="text-center">
+                            <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+                            <p class="mb-2"><strong>${data.message}</strong></p>
+                            <p class="text-muted small">
+                                <i class="bi bi-envelope-check me-1"></i>
+                                Se ha enviado un email de confirmación al usuario.
+                            </p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#198754'
+                }).then(() => {
+                    // Cerrar modal y recargar página
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearReserva'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al crear reserva',
+                    text: data.error || 'Ocurrió un error inesperado',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error en fetch:', error);
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.',
+                confirmButtonColor: '#dc3545'
+            });
+        });
+    }
+
+    // Función para cambiar estado de reserva existente
+    function actualizarEstado(id, estado) {
+        Swal.fire({
+            title: `¿Cambiar el estado a "${estado}"?`,
+            text: "Esta acción actualizará la reserva en el sistema.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, actualizar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('reserva_id').value = id;
+                document.getElementById('estado').value = estado;
+                document.getElementById('formEstado').submit();
+            }
+        });
+    }
+
+    // Código de debugging
+    console.log('Script de admin-reservas cargado correctamente');
+    console.log('URL de creación:', "{% url 'admin-reservas-crear' %}");
+    </script>
+    </body>
+    </html>

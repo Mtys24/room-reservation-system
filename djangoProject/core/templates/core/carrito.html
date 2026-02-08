@@ -1,0 +1,504 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carrito - Cabañas Valle Central</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <style>
+    /* pequeño ajuste visual del calendario mostrado */
+    #calendarioVisual .day-available { background-color: #198754; color: white; cursor: pointer; }
+    #calendarioVisual .day-occupied  { background-color: #dc3545; color: white; cursor: not-allowed; }
+    #calendarioVisual .day-past      { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; } /* gris para días pasados */
+    #calendarioVisual .day-header    { font-weight: 700; }
+    #calendarioVisual .day-cell      { padding: .4rem; border-radius: .25rem; text-align:center; }
+    #calendarioControls { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    #calendarioControls .month-label { font-weight:700; }
+    .month-box { border-radius:6px; padding:8px; background:transparent; }
+    .month-title { text-align:center; font-weight:600; margin-bottom:6px; }
+    .day-cell.selected { outline: 2px solid #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,0.12); }
+    @media (max-width: 992px) {
+      /* menos meses en pantallas pequeñas */
+      #calendarioVisual .months-grid { grid-template-columns: repeat(1, 1fr) !important; }
+    }
+  </style>
+</head>
+<body>
+<!-- NAVBAR PARA CARRITO -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+      <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150" height="150" class="me-2 rounded">
+      <span class="fw-bold text-light">Cabañas Valle Central</span>
+    </a>
+
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto align-items-center">
+        {% if request.session.usuario_id %}
+          {% if request.session.usuario_tipo == "admin" %}
+            <li class="nav-item">
+              <a href="{% url 'admin-index' %}" class="btn btn-warning btn-sm me-2"><i class="bi bi-speedometer2 me-1"></i>Panel Admin</a>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a href="{% url 'mis_reservas' %}" class="nav-link text-light me-2">
+                <i class="bi bi-calendar-check me-1"></i> Mis Reservas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'mi_perfil' %}" class="nav-link text-light me-2">
+                <i class="bi bi-person me-1"></i> Mi Perfil
+              </a>
+            </li>
+          {% endif %}
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a href="{% url 'login' %}" class="btn btn-green btn-sm me-2"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión</a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'register' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-person-plus me-1"></i>Registrarse</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-5">
+  <h2 class="mb-4 text-success">Tu Carrito de Reserva</h2>
+
+  {% if cabana %}
+  <div class="card shadow-sm p-4">
+    <div class="row g-3 align-items-start">
+      <!-- IMAGEN PEQUEÑA -->
+      <div class="col-md-4 d-flex justify-content-center align-items-start">
+        <div style="width:100%; max-width:300px;">
+          {% with cabana.images.all|slice:":1" as first_imgs %}
+            {% if first_imgs %}
+              {% for img in first_imgs %}
+                <img src="{{ img.image.url }}" alt="{{ cabana.nombre }}" class="img-fluid rounded card-img-top">
+              {% endfor %}
+            {% else %}
+              <div class="text-center p-4">
+                <i class="bi bi-house-door-fill" style="font-size:64px; color:#43a047;"></i>
+                <p class="mt-2 text-muted">Sin imagen</p>
+              </div>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- DETALLES Y CALENDARIO -->
+      <div class="col-md-8">
+        <h4 class="text-success">{{ cabana.nombre }}</h4>
+        <p>{{ cabana.descripcion }}</p>
+        <p><i class="bi bi-people"></i> Capacidad: {{ cabana.capacidad }} personas</p>
+        <p>Check-in 11:00 am, Check-out 12:00 p.m</p>
+        <h5>Precio por noche: <span class="text-success">${{ cabana.precio_noche }}</span></h5>
+
+        <hr>
+
+        <div id="calendarioControls" class="mb-2">
+          <button id="calPrev" class="btn btn-outline-secondary btn-sm" title="Mes anterior"><i class="bi bi-chevron-left"></i></button>
+          <div class="month-label">Mostrando</div>
+          <div id="calMonthLabel" class="fw-bold"></div>
+          <div class="ms-auto d-flex align-items-center">
+            <label class="form-label small mb-0 me-2">Meses a mostrar</label>
+            <select id="monthsToShow" class="form-select form-select-sm d-inline-block" style="width:auto;">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+            </select>
+          </div>
+          <button id="calNext" class="btn btn-outline-secondary btn-sm" title="Mes siguiente"><i class="bi bi-chevron-right"></i></button>
+        </div>
+
+        <h5 class="mt-1">📅 Selecciona fechas</h5>
+        <div id="calendarioVisual" class="calendar mb-3">
+          <!-- JS renderiza aquí varios meses -->
+        </div>
+
+        <form id="formReserva" method="POST" onsubmit="return beforeSubmit(event);">
+          {% csrf_token %}
+          <input type="hidden" name="cabana_id" value="{{ cabana.id }}">
+          <input type="hidden" id="total_hidden" name="total_estimated" value="">
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Fecha de entrada</label>
+              <input type="text" id="fechaInicio" name="fecha_inicio" class="form-control" required autocomplete="off" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fecha de salida</label>
+              <input type="text" id="fechaFin" name="fecha_fin" class="form-control" required autocomplete="off" readonly>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Método de pago</label>
+              <select id="paymentMethod" name="payment_method" class="form-select" required>
+                <option value="offline">Pago en destino (Efectivo / Tarjeta al llegar)</option>
+                <option value="transferencia">Transferencia bancaria</option>
+                <option value="online">Pago en línea (tarjeta)</option>
+              </select>
+              <div id="paymentNote" class="form-text mt-1">Si eliges "Pago en línea" serás redirigido al proceso de pago.</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Total estimado</label>
+              <input type="text" id="total" class="form-control" readonly>
+            </div>
+          </div>
+
+          <div class="mt-4 text-end">
+            <button type="button" id="btnConfirm" class="btn btn-success btn-lg" onclick="verificarYEnviar()">Confirmar Reserva</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-center text-muted">No has seleccionado ninguna cabaña aún.</p>
+  {% endif %}
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  try {
+    const precioPorNoche = parseFloat('{{ cabana.precio_noche|default:"0.0" }}') || 0;
+    const reservas = {{ reservas_json|default:"[]"|safe }};
+    console.debug("reservas (desde server):", reservas);
+
+    function parseISO(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-').map(Number);
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+    function isoDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+
+    // Estado del calendario
+    let offsetMonths = 0;            // 0 = mes actual
+    // limit monthsToShow to a maximum of 3
+    const monthsSelect = document.getElementById('monthsToShow');
+    let monthsToShow = Math.min(parseInt(monthsSelect.value, 10) || 3, 3);
+
+    const calendarioEl = document.getElementById('calendarioVisual');
+    const monthLabelEl = document.getElementById('calMonthLabel');
+    const btnPrev = document.getElementById('calPrev');
+    const btnNext = document.getElementById('calNext');
+
+    // Preparamos rangos ocupados normalizados
+    const occupiedRanges = reservas.map(r => {
+      const ini = parseISO(r.inicio);
+      const fin = parseISO(r.fin);
+      if (ini && fin) { ini.setHours(0,0,0,0); fin.setHours(23,59,59,999); return { ini, fin }; }
+      return null;
+    }).filter(Boolean);
+
+    function monthName(year, monthIndex) {
+      return new Date(year, monthIndex, 1).toLocaleString('es-CL', { month: 'long', year: 'numeric' });
+    }
+
+    // Render N months starting from offsetMonths; cap to 3 columns to avoid overflow
+    function generarCalendario() {
+      if (!calendarioEl) return;
+      monthsToShow = Math.min(parseInt(monthsSelect.value, 10) || 3, 3); // enforce max 3
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      // label: starting month
+      const startDate = new Date(today.getFullYear(), today.getMonth() + offsetMonths, 1);
+      monthLabelEl.textContent = monthName(startDate.getFullYear(), startDate.getMonth());
+
+      // grid of months (limit CSS columns to monthsToShow but never more than 3)
+      const columns = Math.min(monthsToShow, 3);
+      let html = `<div class="months-grid" style="display:grid; grid-template-columns: repeat(${columns}, 1fr); gap:12px;">`;
+
+      for (let mi = 0; mi < monthsToShow; mi++) {
+        const mDate = new Date(today.getFullYear(), today.getMonth() + offsetMonths + mi, 1);
+        const year = mDate.getFullYear();
+        const month = mDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const firstDayWeek = (firstDay.getDay() + 6) % 7; // lunes=0
+
+        html += `<div class="month-box">`;
+        html += `<div class="month-title">${monthName(year, month)}</div>`;
+        const diasSemana = ['L','M','X','J','V','S','D'];
+        html += `<div class="d-grid month-days" style="grid-template-columns: repeat(7, 1fr); gap:6px;">`;
+        diasSemana.forEach(d => { html += `<div class="day-header small text-center">${d}</div>`; });
+        for (let i = 0; i < firstDayWeek; i++) html += '<div></div>';
+
+        for (let dia = 1; dia <= lastDay.getDate(); dia++) {
+          const fecha = new Date(year, month, dia);
+          const fechaStart = new Date(year, month, dia); fechaStart.setHours(0,0,0,0);
+          const fechaMid = new Date(year, month, dia); fechaMid.setHours(12,0,0,0);
+          let clase = '';
+          if (fechaStart < todayStart) {
+            clase = 'day-past';
+          } else {
+            const ocupado = occupiedRanges.some(range => fechaMid >= range.ini && fechaMid <= range.fin);
+            clase = ocupado ? 'day-occupied' : 'day-available';
+          }
+          html += `<div class="day-cell ${clase}" data-date="${isoDate(fecha)}">${dia}</div>`;
+        }
+
+        html += `</div></div>`;
+      }
+
+      html += `</div>`;
+      calendarioEl.innerHTML = html;
+
+      // attach click listeners for available days
+      calendarioEl.querySelectorAll('.day-cell.day-available').forEach(cell => {
+        cell.addEventListener('click', function() {
+          const dateStr = this.getAttribute('data-date');
+          onCalendarDayClick(dateStr, this);
+        });
+      });
+
+      // update highlight based on inputs
+      highlightSelectedRange();
+    }
+
+    function highlightSelectedRange() {
+      calendarioEl.querySelectorAll('.day-cell.selected').forEach(el => el.classList.remove('selected'));
+      const inicioVal = document.getElementById('fechaInicio').value;
+      const finVal = document.getElementById('fechaFin').value;
+      if (!inicioVal) return;
+      const inicio = parseISO(inicioVal);
+      const fin = finVal ? parseISO(finVal) : null;
+      calendarioEl.querySelectorAll('.day-cell').forEach(cell => {
+        const d = parseISO(cell.getAttribute('data-date'));
+        if (!d) return;
+        if (fin) {
+          if (d >= inicio && d <= fin) cell.classList.add('selected');
+        } else {
+          if (d.getTime() === inicio.getTime()) cell.classList.add('selected');
+        }
+      });
+    }
+
+    // Click handler: set entrada / salida with validation preventing salida <= entrada
+    function onCalendarDayClick(dateStr, cellEl) {
+      const inicioInput = document.getElementById('fechaInicio');
+      const finInput = document.getElementById('fechaFin');
+      const inicioVal = inicioInput.value;
+      const finVal = finInput.value;
+
+      if (!inicioVal) {
+        inicioInput.value = dateStr;
+        if (inicioPicker) inicioPicker.setDate(dateStr, true);
+        if (finPicker) finPicker.set('minDate', addDays(parseISO(dateStr), 1));
+      } else if (!finVal) {
+        const start = parseISO(inicioVal);
+        const clicked = parseISO(dateStr);
+        if (clicked <= start) {
+          Swal.fire('Fecha inválida', 'La fecha de salida debe ser posterior a la de entrada.', 'warning');
+          return;
+        }
+        if (rangeOverlapsOccupied(start, clicked)) {
+          Swal.fire('Fechas no disponibles', 'El rango seleccionado solapa una reserva existente.', 'error');
+          return;
+        }
+        finInput.value = dateStr;
+        if (finPicker) finPicker.setDate(dateStr, true);
+      } else {
+        // reset start if both already set
+        inicioInput.value = dateStr;
+        finInput.value = '';
+        if (inicioPicker) inicioPicker.setDate(dateStr, true);
+        if (finPicker) { finPicker.clear(); finPicker.set('minDate', addDays(parseISO(dateStr),1)); }
+      }
+
+      calcularTotal();
+      highlightSelectedRange();
+    }
+
+    function rangeOverlapsOccupied(startDate, endDate) {
+      for (const r of occupiedRanges) {
+        if (startDate <= r.fin && endDate >= r.ini) return true;
+      }
+      return false;
+    }
+
+    // navigation
+    btnPrev.addEventListener('click', () => { offsetMonths--; generarCalendario(); });
+    btnNext.addEventListener('click', () => { offsetMonths++; generarCalendario(); });
+    monthsSelect.addEventListener('change', () => { monthsToShow = Math.min(parseInt(monthsSelect.value,10), 3); generarCalendario(); });
+
+    // Inicial render
+    generarCalendario();
+
+    // --- flatpickr: deshabilitar rangos ocupados y enlazar inicio/fin ---
+    function disabledRangesFromReservas() { return reservas.map(r => ({ from: r.inicio, to: r.fin })); }
+
+    const inicioInput = document.getElementById('fechaInicio');
+    const finInput = document.getElementById('fechaFin');
+    const totalInput = document.getElementById('total');
+    const totalHidden = document.getElementById('total_hidden');
+    const paymentMethodSelect = document.getElementById('paymentMethod');
+
+    let inicioPicker = null;
+    let finPicker = null;
+
+    if (typeof flatpickr === 'undefined') {
+      console.error('flatpickr no cargado. Verifica CDN.');
+    } else {
+      const disabled = disabledRangesFromReservas();
+
+      if (inicioInput) {
+        inicioPicker = flatpickr(inicioInput, {
+          dateFormat: "Y-m-d",
+          minDate: "today",
+          disable: disabled,
+          showMonths: 1,
+          onChange: function(selectedDates) {
+            if (selectedDates && selectedDates[0]) {
+              const minFin = addDays(selectedDates[0], 1);
+              if (finPicker) finPicker.set('minDate', minFin);
+              highlightSelectedRange();
+            }
+            calcularTotal();
+          }
+        });
+      }
+
+      if (finInput) {
+        finPicker = flatpickr(finInput, {
+          dateFormat: "Y-m-d",
+          minDate: "today",
+          disable: disabled,
+          showMonths: 1,
+          onChange: function(selectedDates) {
+            // Validation: ensure fin > inicio if inicio exists
+            const iniVal = inicioInput ? inicioInput.value : '';
+            if (iniVal && selectedDates && selectedDates[0]) {
+              const ini = parseISO(iniVal);
+              if (selectedDates[0] <= ini) {
+                Swal.fire('Fecha inválida', 'La fecha de salida debe ser posterior a la de entrada.', 'warning');
+                // clear invalid selection
+                finPicker.clear();
+                return;
+              }
+            }
+            calcularTotal();
+            highlightSelectedRange();
+          }
+        });
+      }
+    }
+
+    function calcularTotal() {
+      const inicioVal = inicioInput ? inicioInput.value : '';
+      const finVal = finInput ? finInput.value : '';
+      if (!inicioVal || !finVal) { if (totalInput) totalInput.value = ''; if (totalHidden) totalHidden.value = ''; return; }
+      const inicio = parseISO(inicioVal); const fin = parseISO(finVal);
+      if (!inicio || !fin || fin <= inicio) { if (totalInput) totalInput.value = ''; if (totalHidden) totalHidden.value = ''; return; }
+      if (rangeOverlapsOccupied(inicio, fin)) {
+        if (totalInput) totalInput.value = 'Fechas no disponibles'; if (totalHidden) totalHidden.value = ''; return;
+      }
+      const diffMs = fin - inicio;
+      const dias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      const total = dias * precioPorNoche;
+      if (totalInput) totalInput.value = '$' + total.toLocaleString('es-CL', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+      if (totalHidden) totalHidden.value = total.toFixed(2);
+    }
+
+    // Validación y envío
+    function verificarYEnviar() {
+      const f1Val = inicioInput ? inicioInput.value : '';
+      const f2Val = finInput ? finInput.value : '';
+      const paymentMethod = paymentMethodSelect ? paymentMethodSelect.value : 'offline';
+      if (!f1Val || !f2Val) { Swal.fire('Fechas incompletas', 'Selecciona fecha de entrada y salida.', 'warning'); return; }
+      const f1 = parseISO(f1Val); const f2 = parseISO(f2Val);
+      if (!f1 || !f2 || f2 <= f1) { Swal.fire('Fechas inválidas', 'La fecha de salida debe ser posterior a la de entrada.', 'warning'); return; }
+      if (rangeOverlapsOccupied(f1, f2)) { Swal.fire('Fechas no disponibles', 'La cabaña está ocupada en el rango seleccionado.', 'error'); return; }
+
+      Swal.fire({
+        title: 'Confirmar Reserva',
+        text: paymentMethod === 'online' ? 'Serás redirigido al pago en línea para completar la reserva.' : 'La reserva quedará registrada como pendiente.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754'
+      }).then(result => {
+        if (result.isConfirmed) {
+          calcularTotal();
+          document.getElementById('formReserva').submit();
+        }
+      });
+    }
+
+    window.beforeSubmit = function(e) { e.preventDefault(); verificarYEnviar(); return false; };
+    window.verificarYEnviar = verificarYEnviar;
+
+    if (inicioInput) inicioInput.addEventListener('change', calcularTotal);
+    if (finInput) finInput.addEventListener('change', calcularTotal);
+
+  } catch (err) {
+    console.error("Error en el script de carrito:", err);
+  }
+});
+</script>
+
+ <!-- FOOTER UNIFICADO -->
+  <footer class="bg-dark text-light py-4 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-house-heart me-2"></i>Cabañas Valle Central</h5>
+          <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>Zona boscosa del valle central de Chile</p>
+          <p class="mb-2"><i class="bi bi-telephone me-2"></i>+56 9 1234 5678</p>
+          <p class="mb-0"><i class="bi bi-envelope me-2"></i>info@cabanasvallecentral.cl</p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-link me-2"></i>Enlaces Rápidos</h5>
+          <ul class="list-unstyled">
+            <li><a href="{% url 'index' %}" class="text-light text-decoration-none"><i class="bi bi-house me-1"></i> Inicio</a></li>
+            <li><a href="{% url 'politicas' %}" class="text-light text-decoration-none"><i class="bi bi-shield-check me-1"></i> Políticas</a></li>
+            <li><a href="{% url 'contacto' %}" class="text-light text-decoration-none"><i class="bi bi-telephone me-1"></i> Contacto</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4 mb-3">
+          <h5><i class="bi bi-info-circle me-2"></i>Información</h5>
+          <p>Disfruta de la naturaleza en nuestras acogedoras cabañas. Reserva tu escapada perfecta hoy mismo.</p>
+          <div class="d-flex gap-2">
+            <a href="https://wa.link/cugqzv" target="_blank" class="btn btn-success btn-sm">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+      <hr class="my-3">
+      <div class="text-center">
+        <p class="mb-0">&copy; 2025 Cabañas Valle Central. Todos los derechos reservados.</p>
+        <small class="text-muted">Desarrollado con <i class="bi bi-heart-fill text-danger"></i> para amantes de la naturaleza</small>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

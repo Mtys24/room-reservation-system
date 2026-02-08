@@ -1,0 +1,634 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de Usuarios - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .phone-format { font-family: monospace; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .search-highlight {
+            background-color: #fff3cd;
+            font-weight: bold;
+        }
+        .letter-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .letter-filter-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 0.25rem;
+            text-decoration: none;
+        }
+        .letter-filter-btn.active {
+            background-color: #198754;
+            color: white;
+        }
+        .letter-filter-btn:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+   <!-- NAVBAR ADMIN (ya está correcto) -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'admin-index' %}">
+            <span class="fs-4">
+                <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150px" height="150px">
+            </span>
+            <span class="ms-2">Cabañas Valle Central - Admin</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Dropdown de Administración -->
+            <div class="dropdown me-2">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear me-1"></i> Administración
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-index' %}">
+                            <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                            <i class="bi bi-house-door me-2"></i> Gestionar Cabañas
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                            <i class="bi bi-calendar-check me-2"></i> Gestionar Reservas
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                            <i class="bi bi-people me-2"></i> Gestionar Usuarios
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                            <i class="bi bi-graph-up me-2"></i> Reportes
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item" href="{% url 'admin-historial' %}"><i class="bi bi-clock-history me-2"></i> Historial</a>
+                </ul>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-light">Volver al sitio</a>
+        </div>
+    </div>
+  </nav>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-success mb-0">
+                <i class="bi bi-people"></i> Gestión de Usuarios
+            </h2>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
+                <i class="bi bi-person-plus"></i> Crear Usuario
+            </button>
+        </div>
+
+        <!-- Modal para crear usuario -->
+        <div class="modal fade" id="modalCrearUsuario" tabindex="-1" aria-labelledby="modalCrearUsuarioLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalCrearUsuarioLabel">Crear Nuevo Usuario</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="formCrearUsuario">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Nombre completo *</label>
+                                    <input type="text" class="form-control" name="nombre" required 
+                                           placeholder="Ej: Juan Pérez" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,100}">
+                                    <div class="form-text">Solo letras y espacios (2-100 caracteres)</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-control" name="email" required 
+                                           placeholder="ejemplo@gmail.com">
+                                    <div class="form-text">Usa proveedores válidos (Gmail, Hotmail, Outlook, etc.)</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="text" class="form-control phone-format" name="telefono" 
+                                           placeholder="+569 7703 2750" pattern="[\+56\s\d]{9,15}">
+                                    <div class="form-text">Formato: +569 7703 2750 (opcional)</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">Contraseña *</label>
+                                    <input type="password" class="form-control" name="contraseña" required 
+                                           minlength="6" placeholder="Mínimo 6 caracteres">
+                                    <div class="form-text">La contraseña debe tener al menos 6 caracteres</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label">Tipo de usuario *</label>
+                                    <select class="form-select" name="tipo" required>
+                                        <option value="cliente">Cliente</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                    <div class="form-text">No se pueden crear usuarios deshabilitados directamente</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-success">Crear Usuario</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title">{{ total_usuarios }}</h5>
+                        <small>Total Usuarios</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title">{{ usuarios_activos }}</h5>
+                        <small>Activos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title">{{ usuarios_deshabilitados }}</h5>
+                        <small>Deshabilitados</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title">{{ usuarios_admin }}</h5>
+                        <small>Administradores</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title">{{ usuarios_cliente }}</h5>
+                        <small>Clientes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campo de búsqueda -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-search"></i> Buscar Usuarios</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <input type="text" id="inputBuscar" class="form-control" placeholder="Escribe para filtrar por nombre, email o teléfono...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtro por letra inicial del nombre -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-filter"></i> Filtrar por letra inicial del nombre</h6>
+            </div>
+            <div class="card-body">
+                <div class="letter-filter" id="letterFilter">
+                    <a href="#" class="letter-filter-btn btn btn-outline-secondary" data-letter="TODAS">TODAS</a>
+                    {% for letra in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+                    <a href="#" class="letter-filter-btn btn btn-outline-secondary" data-letter="{{ letra }}">{{ letra }}</a>
+                    {% endfor %}
+                    <a href="#" class="letter-filter-btn btn btn-outline-secondary" data-letter="#123">#</a>
+                </div>
+                <small class="text-muted">Haz clic en una letra para filtrar usuarios cuyo nombre empiece con esa letra.</small>
+            </div>
+        </div>
+
+        <!-- Lista de Usuarios -->
+        {% if usuarios %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Usuarios</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Tipo/Estado</th>
+                                <th>Fecha Registro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr class="usuario-row" data-nombre="{{ usuario.nombre|lower }}">
+                                <td>{{ usuario.id }}</td>
+                                <td class="usuario-nombre">{{ usuario.nombre }}</td>
+                                <td class="usuario-email">{{ usuario.email }}</td>
+                                <td class="phone-format usuario-telefono">{{ usuario.telefono|default:"-" }}</td>
+                                <td class="usuario-tipo">
+                                    {% if usuario.tipo == 'admin' %}
+                                        <span class="badge bg-danger">Admin</span>
+                                    {% elif usuario.tipo == 'cliente' %}
+                                        <span class="badge bg-secondary">Cliente</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Deshabilitado</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ usuario.fecha_registro|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {% if usuario.id != request.session.usuario_id %}
+                                            <!-- Cambiar tipo solo para usuarios activos -->
+                                            {% if usuario.tipo != 'deshabilitado' %}
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        onclick="cambiarTipoUsuario({{ usuario.id }}, '{{ usuario.tipo }}')"
+                                                        title="Cambiar tipo de usuario">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                                
+                                                <button type="button" class="btn btn-outline-warning" 
+                                                        onclick="cambiarEstadoUsuario({{ usuario.id }}, 'deshabilitar')"
+                                                        title="Deshabilitar usuario">
+                                                    <i class="bi bi-person-x"></i>
+                                                </button>
+                                            {% else %}
+                                                <button type="button" class="btn btn-outline-success" 
+                                                        onclick="cambiarEstadoUsuario({{ usuario.id }}, 'habilitar')"
+                                                        title="Habilitar usuario">
+                                                    <i class="bi bi-person-check"></i>
+                                                </button>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted small">Tu usuario</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> No hay usuarios registrados.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Formularios ocultos para acciones -->
+    <form id="formEstadoUsuario" method="POST" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="usuario_id" id="usuario_id_estado">
+        <input type="hidden" name="accion" id="accion_estado">
+    </form>
+
+    <form id="formTipoUsuario" method="POST" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="usuario_id" id="usuario_id_tipo">
+        <input type="hidden" name="accion" value="cambiar_tipo">
+        <input type="hidden" name="nuevo_tipo" id="nuevo_tipo">
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Variables globales para filtros
+        let currentLetterFilter = 'TODAS';
+        let currentSearchText = '';
+
+        // Formatear teléfono en tiempo real
+        document.getElementById('modalCrearUsuario').addEventListener('show.bs.modal', function() {
+            const phoneInput = document.querySelector('input[name="telefono"]');
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.startsWith('56') && value.length === 11) {
+                    value = '+56 ' + value.substring(2, 5) + ' ' + value.substring(5, 9) + ' ' + value.substring(9);
+                } else if (value.startsWith('9') && value.length === 9) {
+                    value = '+56 ' + value.substring(0, 3) + ' ' + value.substring(3, 7) + ' ' + value.substring(7);
+                } else if (value.startsWith('+569') && value.length === 12) {
+                    value = '+56 ' + value.substring(4, 7) + ' ' + value.substring(7, 11) + ' ' + value.substring(11);
+                }
+                e.target.value = value;
+            });
+        });
+
+        // Crear usuario
+        document.getElementById('formCrearUsuario').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Mostrar loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i> Creando...';
+            submitBtn.disabled = true;
+            
+            fetch("{% url 'admin-usuarios-crear' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-RequestedWith': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Usuario Creado',
+                        text: data.message,
+                        confirmButtonColor: '#198754'
+                    }).then(() => {
+                        // Cerrar modal y recargar
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearUsuario'));
+                        modal.hide();
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor',
+                    confirmButtonColor: '#dc3545'
+                });
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+
+        // Cambiar estado del usuario (deshabilitar/habilitar)
+        function cambiarEstadoUsuario(usuarioId, accion) {
+            const accionTexto = accion === 'deshabilitar' ? 'deshabilitar' : 'habilitar';
+            const icono = accion === 'deshabilitar' ? '⚠️' : '✅';
+            const mensaje = accion === 'deshabilitar' 
+                ? 'El usuario no podrá acceder al sistema hasta que sea habilitado.' 
+                : 'El usuario podrá acceder al sistema normalmente.';
+            
+            Swal.fire({
+                title: `${icono} ¿${accionTexto.charAt(0).toUpperCase() + accionTexto.slice(1)} usuario?`,
+                html: `Esta acción <strong>${accionTexto}</strong> al usuario en el sistema.<br><br>
+                      <small class="text-muted">${mensaje}</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: `Sí, ${accionTexto}`,
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: accion === 'deshabilitar' ? '#ffc107' : '#198754'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('usuario_id_estado').value = usuarioId;
+                    document.getElementById('accion_estado').value = accion;
+                    document.getElementById('formEstadoUsuario').submit();
+                }
+            });
+        }
+
+        // Cambiar tipo de usuario
+        function cambiarTipoUsuario(usuarioId, tipoActual) {
+            const nuevoTipo = tipoActual === 'admin' ? 'cliente' : 'admin';
+            const icono = nuevoTipo === 'admin' ? '👑' : '👤';
+            const mensaje = nuevoTipo === 'admin' 
+                ? 'El usuario tendrá acceso completo al panel de administración.' 
+                : 'El usuario solo podrá hacer reservas como cliente normal.';
+            
+            Swal.fire({
+                title: `${icono} ¿Cambiar tipo de usuario?`,
+                html: `El usuario pasará de <strong>${tipoActual}</strong> a <strong>${nuevoTipo}</strong>.<br><br>
+                      <small class="text-muted">${mensaje}</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0d6efd'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('usuario_id_tipo').value = usuarioId;
+                    document.getElementById('nuevo_tipo').value = nuevoTipo;
+                    document.getElementById('formTipoUsuario').submit();
+                }
+            });
+        }
+
+        // Función para aplicar todos los filtros
+        function aplicarFiltros() {
+            const texto = currentSearchText.toLowerCase();
+            const letraFiltro = currentLetterFilter;
+            
+            const filas = document.querySelectorAll('tbody tr.usuario-row');
+            let visibleCount = 0;
+            
+            filas.forEach(fila => {
+                const nombre = fila.querySelector('.usuario-nombre').textContent.toLowerCase();
+                const email = fila.querySelector('.usuario-email').textContent.toLowerCase();
+                const telefono = fila.querySelector('.usuario-telefono').textContent.toLowerCase();
+                const tipo = fila.querySelector('.usuario-tipo').textContent.toLowerCase();
+                
+                // Aplicar filtro de letra inicial
+                let letraMatch = true;
+                if (letraFiltro !== 'TODAS') {
+                    const primeraLetraNombre = nombre.trim().charAt(0).toUpperCase();
+                    if (letraFiltro === '#123') {
+                        // Filtrar por caracteres no alfabéticos o números
+                        letraMatch = !/^[A-Za-zÁÉÍÓÚáéíóúÑñ]$/.test(primeraLetraNombre);
+                    } else {
+                        letraMatch = primeraLetraNombre === letraFiltro;
+                    }
+                }
+                
+                // Aplicar filtro de búsqueda de texto
+                const textoMatch = nombre.includes(texto) || 
+                                 email.includes(texto) || 
+                                 telefono.includes(texto) ||
+                                 tipo.includes(texto);
+                
+                const mostrar = letraMatch && textoMatch;
+                
+                fila.style.display = mostrar ? '' : 'none';
+                if (mostrar) visibleCount++;
+                
+                // Resaltar texto coincidente
+                if (texto && mostrar) {
+                    resaltarTexto(fila.querySelector('.usuario-nombre'), texto);
+                    resaltarTexto(fila.querySelector('.usuario-email'), texto);
+                    resaltarTexto(fila.querySelector('.usuario-telefono'), texto);
+                } else {
+                    quitarResaltado(fila.querySelector('.usuario-nombre'));
+                    quitarResaltado(fila.querySelector('.usuario-email'));
+                    quitarResaltado(fila.querySelector('.usuario-telefono'));
+                }
+            });
+            
+            // Actualizar contador
+            const contadorElement = document.createElement('div');
+            contadorElement.className = 'alert alert-info mt-3';
+            contadorElement.innerHTML = `<i class="bi bi-info-circle"></i> Mostrando <strong>${visibleCount}</strong> usuarios`;
+            
+            // Mostrar mensaje si no hay resultados
+            const tabla = document.querySelector('table');
+            let mensajeNoResultados = document.getElementById('mensajeNoResultados');
+            let infoResultados = document.getElementById('infoResultados');
+            
+            // Remover mensajes anteriores
+            if (mensajeNoResultados) mensajeNoResultados.remove();
+            if (infoResultados) infoResultados.remove();
+            
+            if (visibleCount === 0 && (texto !== '' || letraFiltro !== 'TODAS')) {
+                mensajeNoResultados = document.createElement('div');
+                mensajeNoResultados.id = 'mensajeNoResultados';
+                mensajeNoResultados.className = 'alert alert-warning text-center mt-3';
+                let mensaje = '';
+                
+                if (letraFiltro !== 'TODAS' && texto !== '') {
+                    mensaje = `No se encontraron usuarios que empiecen con "${letraFiltro}" y coincidan con "${texto}"`;
+                } else if (letraFiltro !== 'TODAS') {
+                    mensaje = `No se encontraron usuarios que empiecen con la letra "${letraFiltro}"`;
+                } else {
+                    mensaje = `No se encontraron usuarios que coincidan con "${texto}"`;
+                }
+                
+                mensajeNoResultados.innerHTML = `<i class="bi bi-search"></i> ${mensaje}`;
+                tabla.parentNode.insertBefore(mensajeNoResultados, tabla.nextSibling);
+            } else if (letraFiltro !== 'TODAS' || texto !== '') {
+                infoResultados = document.createElement('div');
+                infoResultados.id = 'infoResultados';
+                infoResultados.className = 'alert alert-info text-center mt-3';
+                
+                let infoMensaje = '';
+                if (letraFiltro !== 'TODAS' && texto !== '') {
+                    infoMensaje = `Mostrando ${visibleCount} usuarios que empiezan con "${letraFiltro}" y coinciden con "${texto}"`;
+                } else if (letraFiltro !== 'TODAS') {
+                    infoMensaje = `Mostrando ${visibleCount} usuarios que empiezan con la letra "${letraFiltro}"`;
+                } else {
+                    infoMensaje = `Mostrando ${visibleCount} usuarios que coinciden con "${texto}"`;
+                }
+                
+                infoResultados.innerHTML = `<i class="bi bi-info-circle"></i> ${infoMensaje}`;
+                tabla.parentNode.insertBefore(infoResultados, tabla.nextSibling);
+            }
+        }
+
+        // Función para resaltar texto
+        function resaltarTexto(elemento, texto) {
+            const contenido = elemento.textContent;
+            const regex = new RegExp(`(${texto})`, 'gi');
+            const nuevoContenido = contenido.replace(regex, '<span class="search-highlight">$1</span>');
+            elemento.innerHTML = nuevoContenido;
+        }
+
+        // Función para quitar resaltado
+        function quitarResaltado(elemento) {
+            elemento.innerHTML = elemento.textContent;
+        }
+
+        // Filtrado en tiempo real por texto
+        document.getElementById('inputBuscar').addEventListener('input', function(e) {
+            currentSearchText = e.target.value.toLowerCase();
+            aplicarFiltros();
+        });
+
+        // Filtrado por letra inicial
+        document.querySelectorAll('.letter-filter-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Quitar clase active de todos los botones
+                document.querySelectorAll('.letter-filter-btn').forEach(b => {
+                    b.classList.remove('active', 'btn-success');
+                    b.classList.add('btn-outline-secondary');
+                });
+                
+                // Agregar clase active al botón clickeado
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('active', 'btn-success');
+                
+                // Actualizar filtro de letra
+                currentLetterFilter = this.getAttribute('data-letter');
+                
+                // Aplicar filtros
+                aplicarFiltros();
+            });
+        });
+
+        // Limpiar filtros al recargar
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputBuscar = document.getElementById('inputBuscar');
+            if (inputBuscar) {
+                inputBuscar.value = '';
+                inputBuscar.focus();
+            }
+            
+            // Activar botón "TODAS" por defecto
+            const btnTodas = document.querySelector('.letter-filter-btn[data-letter="TODAS"]');
+            if (btnTodas) {
+                btnTodas.classList.remove('btn-outline-secondary');
+                btnTodas.classList.add('active', 'btn-success');
+            }
+            
+            // Aplicar filtros iniciales
+            aplicarFiltros();
+        });
+
+        // Inicializar tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>

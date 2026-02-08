@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestión de Cabañas - Admin</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- SweetAlert (confirmaciones) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+
+  <style>
+    .cabana-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
+    .thumb-small { width: 60px; height: 45px; object-fit: cover; border-radius: 6px; margin-right:6px; }
+    #existingImages img { margin-right: 6px; margin-bottom:6px; }
+    .image-container { position: relative; display: inline-block; }
+    .delete-image-btn { 
+      position: absolute; 
+      top: -8px; 
+      right: -8px; 
+      background: #dc3545; 
+      color: white; 
+      border-radius: 50%; 
+      width: 20px; 
+      height: 20px; 
+      font-size: 12px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      cursor: pointer; 
+      border: none;
+    }
+    .delete-image-btn:hover {
+      background: #c82333;
+      transform: scale(1.1);
+    }
+    /* NOTA: Este template no tiene estilos que afecten el logo del navbar */
+  </style>
+</head>
+<body>
+  <!-- NAVBAR ADMIN ESTANDARIZADO -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'admin-index' %}">
+            <span class="fs-4">
+                <img src="{% static 'core/images/logo.png' %}" alt="logo cabañas" width="150px" height="150px">
+            </span>
+            <span class="ms-2">Cabañas Valle Central - Admin</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Dropdown de Administración -->
+            <div class="dropdown me-2">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear me-1"></i> Administración
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-index' %}">
+                            <i class="bi bi-speedometer2 me-2"></i> Panel Principal
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-cabanas' %}">
+                            <i class="bi bi-house-door me-2"></i> Gestionar Cabañas
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reservas' %}">
+                            <i class="bi bi-calendar-check me-2"></i> Gestionar Reservas
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-usuarios' %}">
+                            <i class="bi bi-people me-2"></i> Gestionar Usuarios
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin-reportes' %}">
+                            <i class="bi bi-graph-up me-2"></i> Reportes
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item" href="{% url 'admin-historial' %}"><i class="bi bi-clock-history me-2"></i> Historial</a>
+                </ul>
+            </div>
+            <a href="{% url 'index' %}" class="btn btn-light">Volver al sitio</a>
+        </div>
+    </div>
+  </nav>
+  
+  <div class="container mt-5">
+    <!-- Mensajes Django -->
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="text-success">Gestión de Cabañas</h2>
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCabaña" onclick="nuevaCabana()">
+        <i class="bi bi-plus-lg"></i> Nueva Cabaña
+      </button>
+    </div>
+
+    <div class="table-responsive shadow-sm">
+      <table class="table table-striped align-middle text-center">
+        <thead class="table-success">
+          <tr>
+            <th>#</th>
+            <th>Imágenes</th>
+            <th>Nombre</th>
+            <th>Capacidad</th>
+            <th>Precio/Noche</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cabana in cabanas %}
+          <tr>
+            <td>{{ cabana.id }}</td>
+            <td>
+              {% if cabana.images.all %}
+                <div class="d-flex justify-content-center">
+                  {% for img in cabana.images.all|slice:":3" %}
+                    <img src="{{ img.image.url }}" alt="img {{ cabana.nombre }}" class="cabana-img me-1">
+                  {% endfor %}
+                  {% if cabana.images.count > 3 %}
+                    <span class="align-self-center ms-2 text-muted">+{{ cabana.images.count|add:"-3" }}</span>
+                  {% endif %}
+                </div>
+              {% else %}
+                <span class="text-muted"><i class="bi bi-image"></i> Sin imagen</span>
+              {% endif %}
+            </td>
+            <td class="text-start">{{ cabana.nombre }}</td>
+            <td>{{ cabana.capacidad }}</td>
+            <td>${{ cabana.precio_noche|floatformat:0 }}</td>
+            <td>
+              {% if cabana.estado == 'disponible' %}
+                <span class="badge bg-success">Disponible</span>
+              {% elif cabana.estado == 'mantenimiento' %}
+                <span class="badge bg-warning text-dark">Mantenimiento</span>
+              {% else %}
+                <span class="badge bg-danger">Ocupada</span>
+              {% endif %}
+            </td>
+            <td>
+              <!-- editar: pasamos los campos y el id; las imágenes se muestran copiando un div oculto -->
+              <button class="btn btn-outline-success btn-sm"
+                      data-bs-toggle="modal" data-bs-target="#modalCabaña"
+                      onclick="editarCabana('{{ cabana.id }}','{{ cabana.nombre|escapejs }}','{{ cabana.descripcion|escapejs }}','{{ cabana.capacidad }}','{{ cabana.precio_noche }}','{{ cabana.estado }}')">
+                <i class="bi bi-pencil"></i> Editar
+              </button>
+
+              <button class="btn btn-outline-danger btn-sm" onclick="eliminarCabana('{{ cabana.id }}', '{{ cabana.nombre|escapejs }}')">
+                <i class="bi bi-trash"></i> Eliminar
+              </button>
+
+              <!-- Hidden container with HTML thumbnails to show in modal (copied by JS) -->
+              <div id="images-html-{{ cabana.id }}" style="display:none;">
+                {% if cabana.images.all %}
+                  {% for img in cabana.images.all %}
+                    <div class="image-container">
+                      <img src="{{ img.image.url }}" class="thumb-small" alt="thumb" data-image-id="{{ img.id }}">
+                      <button type="button" class="delete-image-btn" onclick="marcarImagenParaEliminar({{ img.id }}, this)">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              <i class="bi bi-house-exclamation display-4 d-block mb-2"></i>
+              No hay cabañas registradas.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal: Crear / Editar Cabaña (permite subir imágenes) -->
+  <div class="modal fade" id="modalCabaña" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data" id="formCabana">
+          {% csrf_token %}
+          <input type="hidden" name="cabana_id" id="cabana_id">
+          <input type="hidden" name="accion" value="guardar">
+          <input type="hidden" name="imagenes_a_eliminar" id="imagenes_a_eliminar" value="">
+
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="modalTitle">Agregar / Editar Cabaña</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="nombre" id="nombre" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Capacidad <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" name="capacidad" id="capacidad" min="1" max="20" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Descripción</label>
+                <textarea class="form-control" name="descripcion" id="descripcion" rows="3" placeholder="Descripción de la cabaña..."></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Precio por Noche <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" name="precio_noche" id="precio_noche" min="0" step="0.01" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Estado <span class="text-danger">*</span></label>
+                <select class="form-select" name="estado" id="estado">
+                  <option value="disponible">Disponible</option>
+                  <option value="mantenimiento">Mantenimiento</option>
+                  <option value="ocupada">Ocupada</option>
+                </select>
+              </div>
+
+              <!-- Upload images -->
+              <div class="col-12">
+                <label class="form-label">Imágenes (subir hasta 5 en total)</label>
+                <input type="file" name="images" id="images" class="form-control" accept="image/*" multiple>
+                <div class="form-text">
+                  Formatos aceptados: JPG, PNG, WEBP. Tamaño máximo: 5MB por imagen. 
+                  <span class="text-warning">Límite máximo: 5 imágenes por cabaña.</span>
+                </div>
+              </div>
+
+              <!-- Existing images preview (filled by JS when editing) -->
+              <div class="col-12">
+                <label class="form-label">Imágenes existentes <small class="text-muted">(Haz clic en × para eliminar)</small></label>
+                <div id="existingImages" class="d-flex flex-wrap border rounded p-3 bg-light">
+                  <!-- JS inserta aquí las miniaturas copiando desde #images-html-ID -->
+                  <span class="text-muted" id="noImagesText">No hay imágenes cargadas</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle"></i> Cancelar
+            </button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle"></i> Guardar Cabaña
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden form para eliminar -->
+  <form method="POST" id="formEliminar" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="eliminar">
+    <input type="hidden" name="cabana_id" id="cabana_id_eliminar">
+  </form>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function nuevaCabana() {
+      document.getElementById("cabana_id").value = "";
+      document.getElementById("nombre").value = "";
+      document.getElementById("descripcion").value = "";
+      document.getElementById("capacidad").value = "";
+      document.getElementById("precio_noche").value = "";
+      document.getElementById("estado").value = "disponible";
+      document.getElementById("existingImages").innerHTML = '<span class="text-muted" id="noImagesText">No hay imágenes cargadas</span>';
+      document.getElementById("imagenes_a_eliminar").value = '';
+      const fileInput = document.getElementById("images");
+      if (fileInput) fileInput.value = null;
+      
+      // Actualizar título del modal
+      document.getElementById("modalTitle").textContent = "Agregar Nueva Cabaña";
+    }
+
+    function editarCabana(id, nombre, descripcion, capacidad, precio, estado) {
+      document.getElementById("cabana_id").value = id;
+      document.getElementById("nombre").value = nombre;
+      document.getElementById("descripcion").value = descripcion;
+      document.getElementById("capacidad").value = capacidad;
+      document.getElementById("precio_noche").value = parseFloat(precio).toFixed(2);
+      document.getElementById("estado").value = estado;
+      document.getElementById("imagenes_a_eliminar").value = '';
+
+      // Copiar las miniaturas ocultas del row correspondiente
+      const hidden = document.getElementById('images-html-' + id);
+      const dest = document.getElementById('existingImages');
+      if (hidden && dest) {
+        dest.innerHTML = hidden.innerHTML;
+        // Remover el texto "no hay imágenes" si hay imágenes
+        const noImagesText = document.getElementById('noImagesText');
+        if (noImagesText) noImagesText.remove();
+      } else if (dest) {
+        dest.innerHTML = '<span class="text-muted" id="noImagesText">No hay imágenes cargadas</span>';
+      }
+
+      // limpiar file input
+      const fileInput = document.getElementById("images");
+      if (fileInput) fileInput.value = null;
+      
+      // Actualizar título del modal
+      document.getElementById("modalTitle").textContent = "Editar Cabaña: " + nombre;
+    }
+
+    function eliminarCabana(id, nombre) {
+      Swal.fire({
+        title: `¿Eliminar cabaña "${nombre}"?`,
+        text: "Esta acción no se puede deshacer. Se eliminarán todas las imágenes asociadas.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        customClass: {
+          confirmButton: 'btn btn-danger',
+          cancelButton: 'btn btn-secondary'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          document.getElementById("cabana_id_eliminar").value = id;
+          document.getElementById("formEliminar").submit();
+        }
+      });
+    }
+
+    function marcarImagenParaEliminar(imageId, element) {
+      Swal.fire({
+        title: '¿Eliminar esta imagen?',
+        text: "Esta acción no se puede deshacer. La imagen se eliminará permanentemente.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+          confirmButton: 'btn btn-danger',
+          cancelButton: 'btn btn-secondary'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Ocultar la imagen visualmente
+          element.parentElement.style.display = 'none';
+          
+          // Agregar el ID al campo hidden de imágenes a eliminar
+          const eliminarInput = document.getElementById('imagenes_a_eliminar');
+          const idsActuales = eliminarInput.value ? eliminarInput.value.split(',') : [];
+          
+          if (!idsActuales.includes(imageId.toString())) {
+            idsActuales.push(imageId.toString());
+            eliminarInput.value = idsActuales.join(',');
+          }
+          
+          // Mostrar mensaje de éxito
+          Swal.fire({
+            title: 'Imagen marcada para eliminar',
+            text: 'La imagen se eliminará cuando guardes los cambios.',
+            icon: 'success',
+            confirmButtonColor: '#198754',
+            timer: 2000
+          });
+        }
+      });
+    }
+
+    // Validación del formulario antes de enviar
+    document.getElementById('formCabana').addEventListener('submit', function(e) {
+      const nombre = document.getElementById('nombre').value.trim();
+      const capacidad = document.getElementById('capacidad').value;
+      const precio = document.getElementById('precio_noche').value;
+      
+      if (!nombre) {
+        e.preventDefault();
+        Swal.fire('Error', 'El nombre de la cabaña es obligatorio.', 'error');
+        return;
+      }
+      
+      if (!capacidad || capacidad < 1) {
+        e.preventDefault();
+        Swal.fire('Error', 'La capacidad debe ser al menos 1.', 'error');
+        return;
+      }
+      
+      if (!precio || precio <= 0) {
+        e.preventDefault();
+        Swal.fire('Error', 'El precio debe ser mayor a 0.', 'error');
+        return;
+      }
+      
+      // Mostrar loading
+      Swal.fire({
+        title: 'Guardando...',
+        text: 'Por favor espera',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+    });
+
+    // Limitar número de archivos seleccionados
+    document.getElementById('images').addEventListener('change', function(e) {
+      const files = e.target.files;
+      const existingCount = document.querySelectorAll('#existingImages .image-container:not([style*="display: none"])').length;
+      const totalCount = files.length + existingCount;
+      
+      if (totalCount > 5) {
+        Swal.fire({
+          title: 'Límite de imágenes excedido',
+          text: `Solo puedes tener 5 imágenes máximo. Ya tienes ${existingCount} imágenes y estás intentando agregar ${files.length} más.`,
+          icon: 'warning',
+          confirmButtonText: 'Entendido'
+        });
+        e.target.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
