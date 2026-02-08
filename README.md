@@ -1,6 +1,6 @@
-##Proyect Preview
+##**Proyect Preview**
 
 
-##Home Page
+##**Home Page**
 
 ![HOME](assets/img_sistema_cabañas.png)
